@@ -11,7 +11,12 @@ const app = express();
 app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(helmet({ contentSecurityPolicy: false }));
-app.use(express.json({ limit: '32kb' }));
+app.use(express.json({
+  limit: '32kb',
+  verify: (req, res, buffer) => {
+    req.rawBody = buffer.toString('utf8');
+  }
+}));
 app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 80, standardHeaders: 'draft-7', legacyHeaders: false }));
 app.use(express.static('public'));
 
@@ -23,6 +28,8 @@ const catalog = {
   signature: { name: 'Signature Reel', price: '59.00', duration: 'Up to 45 seconds' }
 };
 const fulfillmentStatuses = new Set(['NEW', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'DELIVERED', 'CANCELLED']);
+const adminSessionCookie = 'qm_admin';
+const adminSessionTtlMs = 8 * 60 * 60 * 1000;
 
 function fail(res, status, message) {
   return res.status(status).json({ error: message });
@@ -43,10 +50,58 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(left, right);
 }
 
-function adminAuthorized(req) {
+function adminSecret() {
   const expected = process.env.ADMIN_TOKEN;
+  return expected && !expected.startsWith('replace_') ? expected : '';
+}
+
+function adminTokenMatches(supplied) {
+  const expected = adminSecret();
+  return Boolean(expected && safeEqual(supplied || '', expected));
+}
+
+function parseCookies(req) {
+  return Object.fromEntries((req.headers.cookie || '').split(';').map(part => {
+    const [key, ...value] = part.trim().split('=');
+    return [key, decodeURIComponent(value.join('=') || '')];
+  }).filter(([key]) => key));
+}
+
+function signAdminSession(value) {
+  return crypto.createHmac('sha256', adminSecret()).update(value).digest('base64url');
+}
+
+function createAdminSessionCookie() {
+  const expires = Date.now() + adminSessionTtlMs;
+  const nonce = crypto.randomBytes(18).toString('base64url');
+  const value = `${expires}.${nonce}`;
+  return `${value}.${signAdminSession(value)}`;
+}
+
+function adminSessionValid(req) {
+  const token = parseCookies(req)[adminSessionCookie];
+  if (!token || !adminSecret()) return false;
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  const [expires, nonce, signature] = parts;
+  if (!/^\d+$/.test(expires) || Number(expires) < Date.now() || !nonce) return false;
+  return safeEqual(signature, signAdminSession(`${expires}.${nonce}`));
+}
+
+function setAdminSession(res) {
+  const secure = publicBaseUrl.startsWith('https://') || Boolean(process.env.RAILWAY_ENVIRONMENT);
+  res.setHeader('Set-Cookie', [
+    `${adminSessionCookie}=${encodeURIComponent(createAdminSessionCookie())}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${adminSessionTtlMs / 1000}${secure ? '; Secure' : ''}`
+  ]);
+}
+
+function clearAdminSession(res) {
+  res.setHeader('Set-Cookie', `${adminSessionCookie}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`);
+}
+
+function adminAuthorized(req) {
   const supplied = (req.headers.authorization || '').match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || '';
-  return Boolean(expected && !expected.startsWith('replace_') && safeEqual(supplied, expected));
+  return adminSessionValid(req) || adminTokenMatches(supplied);
 }
 
 function requireAdmin(req, res) {
@@ -132,10 +187,23 @@ function createPostgresStore() {
         updated_at timestamptz not null default now()
       )
     `);
+    await pool.query(`
+      create table if not exists payments (
+        capture_id text primary key,
+        order_id text not null references orders(id),
+        paypal_order_id text not null,
+        status text not null,
+        amount text not null,
+        currency text not null default 'USD',
+        created_at timestamptz not null default now()
+      )
+    `);
     await pool.query("alter table orders add column if not exists fulfillment_status text not null default 'NEW'");
     await pool.query("alter table orders add column if not exists admin_notes text not null default ''");
     await pool.query('create index if not exists orders_status_created_idx on orders (status, created_at desc)');
     await pool.query('create index if not exists orders_fulfillment_created_idx on orders (fulfillment_status, created_at desc)');
+    await pool.query('create unique index if not exists orders_capture_id_unique on orders (capture_id) where capture_id is not null');
+    await pool.query('create index if not exists payments_order_created_idx on payments (order_id, created_at desc)');
   }
 
   function rowToOrder(row) {
@@ -179,15 +247,44 @@ function createPostgresStore() {
       const result = await pool.query('select * from orders where paypal_order_id=$1 limit 1', [paypalOrderId]);
       return rowToOrder(result.rows[0]);
     },
-    async markPaid(orderId, captureId) {
-      const result = await pool.query(
-        `update orders
-           set status='PAID', capture_id=$2, paid_at=now(), updated_at=now()
-         where id=$1
-         returning *`,
-        [orderId, captureId]
-      );
-      return rowToOrder(result.rows[0]);
+    async markPaid(orderId, capture) {
+      const client = await pool.connect();
+      try {
+        await client.query('begin');
+        const current = await client.query('select * from orders where id=$1 for update', [orderId]);
+        if (!current.rows[0]) {
+          await client.query('rollback');
+          return null;
+        }
+        const existing = rowToOrder(current.rows[0]);
+        if (existing.status === 'PAID' && existing.captureId === capture.id) {
+          await client.query('commit');
+          return existing;
+        }
+        if (existing.status === 'PAID' && existing.captureId && existing.captureId !== capture.id) {
+          throw Error('Order is already paid with a different capture ID');
+        }
+        await client.query(
+          `insert into payments (capture_id, order_id, paypal_order_id, status, amount, currency)
+           values ($1,$2,$3,$4,$5,$6)
+           on conflict (capture_id) do nothing`,
+          [capture.id, orderId, existing.paypalOrderId, capture.status, capture.amount.value, capture.amount.currency_code]
+        );
+        const result = await client.query(
+          `update orders
+             set status='PAID', capture_id=$2, paid_at=coalesce(paid_at, now()), updated_at=now()
+           where id=$1
+           returning *`,
+          [orderId, capture.id]
+        );
+        await client.query('commit');
+        return rowToOrder(result.rows[0]);
+      } catch (error) {
+        await client.query('rollback').catch(() => {});
+        throw error;
+      } finally {
+        client.release();
+      }
     },
     async updateManagement(orderId, updates) {
       const result = await pool.query(
@@ -247,12 +344,15 @@ function createJsonStore() {
     async findByPayPalOrderId(paypalOrderId) {
       return normalizeOrder(orders.find(order => order.paypalOrderId === paypalOrderId) || null);
     },
-    async markPaid(orderId, captureId) {
+    async markPaid(orderId, capture) {
       const order = orders.find(item => item.id === orderId);
       if (!order) return null;
+      if (order.status === 'PAID' && order.captureId && order.captureId !== capture.id) {
+        throw Error('Order is already paid with a different capture ID');
+      }
       order.status = 'PAID';
-      order.captureId = captureId;
-      order.paidAt = new Date().toISOString();
+      order.captureId = capture.id;
+      order.paidAt = order.paidAt || new Date().toISOString();
       order.updatedAt = new Date().toISOString();
       await persist();
       return normalizeOrder(order);
@@ -310,6 +410,24 @@ async function paypal(pathname, method, body, requestId) {
   const json = await response.json().catch(() => ({}));
   if (!response.ok) throw Error(`PayPal ${method} failed (${response.status}): ${json.name || 'unknown error'}`);
   return json;
+}
+
+function verifiedCapture(result, record) {
+  const unit = result.purchase_units?.[0];
+  const capture = unit?.payments?.captures?.find(item => item.status === 'COMPLETED' && item.custom_id === record.id);
+  const amountMatches = capture?.amount?.value === record.amount && capture?.amount?.currency_code === record.currency;
+  const orderMatches = result.id === record.paypalOrderId && result.status === 'COMPLETED' && unit?.reference_id === record.id && capture?.custom_id === record.id;
+  return capture && amountMatches && orderMatches ? capture : null;
+}
+
+async function capturePayPalOrder(record) {
+  try {
+    return await paypal(`/v2/checkout/orders/${encodeURIComponent(record.paypalOrderId)}/capture`, 'POST', null, `capture-${record.id}`);
+  } catch (captureError) {
+    const inspected = await paypal(`/v2/checkout/orders/${encodeURIComponent(record.paypalOrderId)}`, 'GET', null, `inspect-${record.id}`);
+    if (inspected.status === 'COMPLETED') return inspected;
+    throw captureError;
+  }
 }
 
 app.get('/api/config', (req, res) => {
@@ -391,17 +509,14 @@ app.post('/api/orders/:paypalOrderId/capture', async (req, res) => {
 
   try {
     // PayPal is authoritative. Never trust a client-side success redirect alone.
-    const result = await paypal(`/v2/checkout/orders/${encodeURIComponent(record.paypalOrderId)}/capture`, 'POST', null, `capture-${record.id}`);
-    const unit = result.purchase_units?.[0];
-    const capture = unit?.payments?.captures?.find(item => item.status === 'COMPLETED');
-    const amountMatches = capture?.amount?.value === record.amount && capture?.amount?.currency_code === record.currency;
-    const orderMatches = result.status === 'COMPLETED' && unit?.custom_id === record.id && unit?.reference_id === record.id;
+    const result = await capturePayPalOrder(record);
+    const capture = verifiedCapture(result, record);
 
-    if (!capture || !amountMatches || !orderMatches) {
+    if (!capture) {
       return fail(res, 409, 'Payment has not been verified. Contact support.');
     }
 
-    const paidOrder = await store.markPaid(record.id, capture.id);
+    const paidOrder = await store.markPaid(record.id, capture);
     res.json({ status: 'PAID', orderId: paidOrder.id });
   } catch (error) {
     console.error(error);
@@ -425,6 +540,23 @@ app.get('/api/admin/orders', async (req, res) => {
 
   const orders = await store.listOrders();
   res.set('Cache-Control', 'no-store').json(orders.map(adminOrder));
+});
+
+app.get('/api/admin/session', (req, res) => {
+  if (!adminAuthorized(req)) return fail(res, 401, 'Unauthorized');
+  res.set('Cache-Control', 'no-store').json({ authenticated: true });
+});
+
+app.post('/api/admin/login', (req, res) => {
+  const token = clean(req.body?.token, 500);
+  if (!adminTokenMatches(token)) return fail(res, 401, 'Unauthorized');
+  setAdminSession(res);
+  res.set('Cache-Control', 'no-store').json({ authenticated: true });
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  clearAdminSession(res);
+  res.set('Cache-Control', 'no-store').json({ ok: true });
 });
 
 app.patch('/api/admin/orders/:id', async (req, res) => {

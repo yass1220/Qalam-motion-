@@ -34,7 +34,7 @@
           <label for="token">رمز الإدارة</label>
           <input id="token" type="password" autocomplete="current-password" placeholder="ADMIN_TOKEN">
         </div>
-        <button id="load" class="button">عرض الطلبات</button>
+        <button id="login" class="button">تسجيل الدخول</button>
       </div>
       <div id="message" role="status" aria-live="polite"></div>
     </section>
@@ -48,7 +48,11 @@
           <span class="stat" id="active">0 قيد التنفيذ</span>
           <span class="stat" id="delivered">0 تم تسليمه</span>
         </div>
-        <button id="export" class="button secondary" type="button">تحميل CSV</button>
+        <div>
+          <button id="refresh" class="button secondary" type="button">تحديث</button>
+          <button id="export" class="button secondary" type="button">تحميل CSV</button>
+          <button id="logout" class="button secondary" type="button">خروج</button>
+        </div>
       </div>
     </section>
 
@@ -74,7 +78,6 @@
   <script>
     const $ = id => document.getElementById(id);
     let currentOrders = [];
-    $('token').value = localStorage.getItem('qalam_admin_token') || '';
     const fulfillmentOptions = [
       ['NEW', 'طلب جديد'],
       ['IN_PROGRESS', 'قيد التنفيذ'],
@@ -115,10 +118,8 @@
         .replaceAll("'", '&#039;');
     }
 
-    function adminHeaders() {
-      const token = $('token').value.trim();
+    function jsonHeaders() {
       return {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       };
     }
@@ -154,11 +155,9 @@
     }
 
     async function loadOrders() {
-      const token = $('token').value.trim();
-      localStorage.setItem('qalam_admin_token', token);
       $('message').textContent = 'جار تحميل الطلبات...';
       try {
-        const response = await fetch('/api/admin/orders', { headers: { Authorization: `Bearer ${token}` } });
+        const response = await fetch('/api/admin/orders', { credentials: 'same-origin' });
         const json = await response.json();
         if (!response.ok) throw Error(json.error || 'تعذر تحميل الطلبات');
         render(json);
@@ -166,6 +165,32 @@
       } catch (error) {
         $('message').textContent = error.message;
       }
+    }
+
+    async function login() {
+      const token = $('token').value.trim();
+      $('message').textContent = 'جار تسجيل الدخول...';
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: jsonHeaders(),
+          credentials: 'same-origin',
+          body: JSON.stringify({ token })
+        });
+        const json = await response.json();
+        if (!response.ok) throw Error(json.error || 'تعذر تسجيل الدخول');
+        $('token').value = '';
+        await loadOrders();
+      } catch (error) {
+        $('message').textContent = error.message;
+      }
+    }
+
+    async function logout() {
+      await fetch('/api/admin/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+      currentOrders = [];
+      render([]);
+      $('message').textContent = 'تم تسجيل الخروج.';
     }
 
     async function saveOrder(button) {
@@ -178,7 +203,8 @@
       try {
         const response = await fetch(`/api/admin/orders/${encodeURIComponent(id)}`, {
           method: 'PATCH',
-          headers: adminHeaders(),
+          headers: jsonHeaders(),
+          credentials: 'same-origin',
           body: JSON.stringify({ fulfillmentStatus, adminNotes })
         });
         const json = await response.json();
@@ -191,9 +217,11 @@
       }
     }
 
-    $('load').addEventListener('click', loadOrders);
+    $('login').addEventListener('click', login);
+    $('refresh').addEventListener('click', loadOrders);
+    $('logout').addEventListener('click', logout);
     $('token').addEventListener('keydown', event => {
-      if (event.key === 'Enter') loadOrders();
+      if (event.key === 'Enter') login();
     });
     $('orders').addEventListener('click', event => {
       if (event.target.classList.contains('save')) saveOrder(event.target);
@@ -208,6 +236,11 @@
       link.click();
       URL.revokeObjectURL(url);
     });
+    fetch('/api/admin/session', { credentials: 'same-origin' })
+      .then(response => {
+        if (response.ok) return loadOrders();
+      })
+      .catch(() => {});
   </script>
 </body>
 </html>
