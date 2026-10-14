@@ -58,6 +58,7 @@
         </div>
         <div>
           <button id="refresh" class="button secondary" type="button">تحديث</button>
+          <button id="setup-webhook" class="button secondary" type="button">تهيئة ويبهوك بايبال</button>
           <button id="export" class="button secondary" type="button">تحميل CSV</button>
           <button id="logout" class="button secondary" type="button">خروج</button>
         </div>
@@ -86,6 +87,7 @@
   <script>
     const $ = id => document.getElementById(id);
     let currentOrders = [];
+    let sessionInfo = { emailConfigured: false, webhookConfigured: false };
     const fulfillmentOptions = [
       ['NEW', 'طلب جديد'],
       ['IN_PROGRESS', 'قيد التنفيذ'],
@@ -133,11 +135,13 @@
     }
 
     function setAuthenticated(isAuthenticated, info = {}) {
+      sessionInfo = isAuthenticated ? { ...sessionInfo, ...info } : { emailConfigured: false, webhookConfigured: false };
       $('login-row').classList.toggle('hidden', isAuthenticated);
       $('logged-in').classList.toggle('hidden', !isAuthenticated);
       if (isAuthenticated) $('token').value = '';
-      $('email-config').textContent = `الإيميل: ${info.emailConfigured ? 'مفعّل' : 'غير مفعّل'}`;
-      $('webhook-config').textContent = `ويبهوك بايبال: ${info.webhookConfigured ? 'مفعّل' : 'غير مفعّل'}`;
+      $('email-config').textContent = `الإيميل: ${sessionInfo.emailConfigured ? 'مفعّل' : 'غير مفعّل'}`;
+      $('webhook-config').textContent = `ويبهوك بايبال: ${sessionInfo.webhookConfigured ? 'مفعّل' : 'غير مفعّل'}`;
+      $('setup-webhook').disabled = !isAuthenticated || Boolean(sessionInfo.webhookConfigured);
     }
 
     function renderManagement(order) {
@@ -211,6 +215,24 @@
       $('message').textContent = 'تم تسجيل الخروج.';
     }
 
+    async function setupWebhook() {
+      $('message').textContent = 'جار تهيئة ويبهوك بايبال...';
+      $('setup-webhook').disabled = true;
+      try {
+        const response = await fetch('/api/admin/paypal-webhook/setup', {
+          method: 'POST',
+          credentials: 'same-origin'
+        });
+        const json = await response.json();
+        if (!response.ok) throw Error(json.error || 'تعذر تهيئة ويبهوك بايبال');
+        setAuthenticated(true, { webhookConfigured: true });
+        $('message').textContent = 'تم تفعيل ويبهوك بايبال بنجاح.';
+      } catch (error) {
+        $('message').textContent = error.message;
+        $('setup-webhook').disabled = false;
+      }
+    }
+
     async function saveOrder(button) {
       const id = button.dataset.id;
       const row = button.closest('tr');
@@ -237,6 +259,7 @@
 
     $('login').addEventListener('click', login);
     $('refresh').addEventListener('click', loadOrders);
+    $('setup-webhook').addEventListener('click', setupWebhook);
     $('logout').addEventListener('click', logout);
     $('token').addEventListener('keydown', event => {
       if (event.key === 'Enter') login();
