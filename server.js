@@ -46,6 +46,7 @@ const adminSessionCookie = 'qm_admin';
 const adminSessionTtlMs = 8 * 60 * 60 * 1000;
 const supportEmail = clean(process.env.SUPPORT_EMAIL || process.env.ADMIN_EMAIL, 254);
 const paypalWebhookSettingKey = 'paypalWebhookId';
+const paypalWebhookUrlSettingKey = 'paypalWebhookUrl';
 
 function fail(res, status, message) {
   return res.status(status).json({ error: message });
@@ -610,7 +611,11 @@ async function notifyPaidOrder(order) {
 }
 
 async function configuredPayPalWebhookId() {
-  return clean(process.env.PAYPAL_WEBHOOK_ID || await store.getSetting(paypalWebhookSettingKey), 120);
+  if (process.env.PAYPAL_WEBHOOK_ID) return clean(process.env.PAYPAL_WEBHOOK_ID, 120);
+  const saved = clean(await store.getSetting(paypalWebhookSettingKey), 120);
+  const savedUrl = clean(await store.getSetting(paypalWebhookUrlSettingKey), 300);
+  if (savedUrl && savedUrl !== paypalWebhookUrl) return '';
+  return saved;
 }
 
 async function webhookStatus() {
@@ -626,12 +631,16 @@ function paypalCredentialsConfigured() {
 
 async function ensurePayPalWebhook() {
   if (process.env.PAYPAL_WEBHOOK_ID) return clean(process.env.PAYPAL_WEBHOOK_ID, 120);
-  const saved = await store.getSetting(paypalWebhookSettingKey);
-  if (saved) return saved;
   if (!paypalCredentialsConfigured()) return '';
 
+  const saved = clean(await store.getSetting(paypalWebhookSettingKey), 120);
+  const savedUrl = clean(await store.getSetting(paypalWebhookUrlSettingKey), 300);
   const listed = await paypal('/v1/notifications/webhooks', 'GET');
-  const existing = listed.webhooks?.find(item => item.url === paypalWebhookUrl);
+  const webhooks = Array.isArray(listed.webhooks) ? listed.webhooks : [];
+  const existing = webhooks.find(item => item.url === paypalWebhookUrl);
+  const savedWebhook = saved ? webhooks.find(item => item.id === saved) : null;
+  if (!existing && saved && savedUrl === paypalWebhookUrl && savedWebhook) return saved;
+
   const webhook = existing || await paypal('/v1/notifications/webhooks', 'POST', {
     url: paypalWebhookUrl,
     event_types: [
@@ -642,6 +651,7 @@ async function ensurePayPalWebhook() {
   const webhookId = clean(webhook?.id, 120);
   if (!webhookId) throw Error('PayPal webhook setup did not return a webhook ID');
   await store.setSetting(paypalWebhookSettingKey, webhookId);
+  await store.setSetting(paypalWebhookUrlSettingKey, paypalWebhookUrl);
   return webhookId;
 }
 
