@@ -60,6 +60,7 @@
         <div>
           <button id="refresh" class="button secondary" type="button">تحديث</button>
           <button id="setup-webhook" class="button secondary" type="button">تهيئة ويبهوك بايبال</button>
+          <button id="test-email" class="button secondary" type="button">اختبار الإيميل</button>
           <button id="export" class="button secondary" type="button">تحميل CSV</button>
           <button id="logout" class="button secondary" type="button">خروج</button>
         </div>
@@ -143,6 +144,7 @@
       $('email-config').textContent = `الإيميل: ${sessionInfo.emailConfigured ? 'مفعّل' : 'غير مفعّل'}`;
       $('webhook-config').textContent = `ويبهوك بايبال: ${sessionInfo.webhookConfigured ? 'مفعّل' : 'غير مفعّل'}`;
       $('setup-webhook').disabled = !isAuthenticated || Boolean(sessionInfo.webhookConfigured);
+      $('test-email').disabled = !isAuthenticated || !sessionInfo.emailConfigured;
     }
 
     function renderManagement(order) {
@@ -234,6 +236,26 @@
       }
     }
 
+    async function testEmail() {
+      $('message').textContent = 'جار إرسال رسالة اختبار...';
+      $('test-email').disabled = true;
+      try {
+        const response = await fetch('/api/admin/email-test', {
+          method: 'POST',
+          headers: jsonHeaders(),
+          credentials: 'same-origin',
+          body: JSON.stringify({})
+        });
+        const json = await response.json();
+        if (!response.ok) throw Error(json.error || 'تعذر إرسال رسالة الاختبار');
+        $('message').textContent = `تم إرسال رسالة اختبار إلى ${json.to}.`;
+      } catch (error) {
+        $('message').textContent = error.message;
+      } finally {
+        $('test-email').disabled = !sessionInfo.emailConfigured;
+      }
+    }
+
     async function saveOrder(button) {
       const id = button.dataset.id;
       const row = button.closest('tr');
@@ -261,6 +283,7 @@
     $('login').addEventListener('click', login);
     $('refresh').addEventListener('click', loadOrders);
     $('setup-webhook').addEventListener('click', setupWebhook);
+    $('test-email').addEventListener('click', testEmail);
     $('logout').addEventListener('click', logout);
     $('token').addEventListener('keydown', event => {
       if (event.key === 'Enter') login();

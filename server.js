@@ -909,6 +909,42 @@ app.post('/api/admin/paypal-webhook/setup', async (req, res) => {
   }
 });
 
+app.post('/api/admin/email-test', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+
+  if (!emailsConfigured()) {
+    return fail(res, 503, 'Email is not configured');
+  }
+
+  const recipient = clean(req.body?.email || process.env.ADMIN_EMAIL || '', 254);
+  if (!validEmail(recipient)) return fail(res, 400, 'Admin email is not configured');
+
+  try {
+    await sendEmail({
+      to: recipient,
+      subject: 'Qalam Motion email test',
+      replyTo: supportEmail,
+      text: [
+        'Qalam Motion email is configured correctly.',
+        '',
+        `Dashboard: ${publicBaseUrl}/admin.html`,
+        `Time: ${new Date().toISOString()}`
+      ].join('\n'),
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f1f1f">
+          <h2>Qalam Motion email is configured correctly.</h2>
+          <p>This test confirms that the website can send email through Resend.</p>
+          <p><a href="${publicBaseUrl}/admin.html">Open admin dashboard</a></p>
+        </div>
+      `
+    });
+    res.set('Cache-Control', 'no-store').json({ sent: true, to: recipient });
+  } catch (error) {
+    console.error(error);
+    fail(res, 502, 'Could not send test email');
+  }
+});
+
 app.patch('/api/admin/orders/:id', async (req, res) => {
   if (!requireAdmin(req, res)) return;
 
