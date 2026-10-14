@@ -60,7 +60,7 @@ app.post('/api/orders/:paypalOrderId/capture',async(req,res)=>{
  // PayPal is authoritative. Never trust a client-side success redirect alone.
  const result=await paypal(`/v2/checkout/orders/${encodeURIComponent(record.paypalOrderId)}/capture`,'POST',null,`capture-${record.id}`);
  const unit=result.purchase_units?.[0];const capture=unit?.payments?.captures?.find(c=>c.status==='COMPLETED');
- if(result.status!=='COMPLETED'||!capture||capture.amount?.value!==record.amount||capture.amount?.currency_code!=='USD'||unit?.custom_id!==record.id)return fail(res,409,'Payment has not been verified. Contact support.');
+ if(result.status!=='COMPLETED'||!capture||capture.amount?.value!==record.amount||capture.amount?.currency_code!=='USD'||capture.custom_id!==record.id)return fail(res,409,'Payment has not been verified. Contact support.');
  record.status='PAID';record.captureId=capture.id;record.paidAt=new Date().toISOString();await persist();
  res.json({status:'PAID',orderId:record.id});
  }catch(e){console.error(e);fail(res,502,'Could not confirm payment. Do not pay again; contact support with your order reference.');}
