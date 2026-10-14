@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
   <title>تتبع الطلب | قلم موشن</title>
   <style>
     *{box-sizing:border-box}:root{--panel:#232221;--line:#665445;--gold:#e9c38b;--muted:#bab7b0}
@@ -62,7 +63,7 @@
       PAID: 'مدفوع',
       AWAITING_PAYMENT: 'ينتظر الدفع'
     };
-    $('check').addEventListener('click', async () => {
+    async function checkOrder() {
       $('message').textContent = 'جار التحقق من الطلب...';
       $('result').style.display = 'none';
       try {
@@ -82,7 +83,22 @@
       } catch (error) {
         $('message').textContent = error.message;
       }
+    }
+
+    $('check').addEventListener('click', checkOrder);
+    ['orderId', 'email'].forEach(id => {
+      $(id).addEventListener('keydown', event => {
+        if (event.key === 'Enter') checkOrder();
+      });
     });
+
+    const params = new URLSearchParams(location.search);
+    const initialOrderId = params.get('orderId') || sessionStorage.getItem('qalam_order_id') || '';
+    const initialEmail = sessionStorage.getItem('qalam_order_email') || '';
+    if (initialOrderId) $('orderId').value = initialOrderId;
+    if (initialEmail) $('email').value = initialEmail;
+    if (initialOrderId && initialEmail) checkOrder();
+    else if (initialOrderId) $('message').textContent = 'أدخل البريد الإلكتروني الذي استعملته في الدفع لإظهار حالة الطلب.';
   </script>
 </body>
 </html>

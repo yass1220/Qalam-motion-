@@ -9,6 +9,9 @@ Arabic landing page and checkout flow for Qalam Motion, a hand-drawn video servi
 - Local JSON order storage fallback for development.
 - Public Arabic landing page in `public/index.html`.
 - Admin orders page at `/admin.html`, protected by `ADMIN_TOKEN`.
+- Customer order tracking page at `/status.html`.
+- Optional email notifications through Resend.
+- PayPal webhook setup for capture confirmation.
 - Health check at `/health`.
 
 ## Local Setup
@@ -32,6 +35,11 @@ Open `http://localhost:3000`.
 | `ADMIN_TOKEN` | Long private token used to open `/admin.html`. |
 | `DATABASE_URL` | Optional PostgreSQL URL. Railway Postgres can provide this automatically. |
 | `PGSSLMODE` | Optional. Use `require` only when the database provider requires SSL. |
+| `RESEND_API_KEY` | Optional. Enables order confirmation emails when set with `EMAIL_FROM`. |
+| `EMAIL_FROM` | Optional sender address for customer/admin order emails. |
+| `ADMIN_EMAIL` | Optional destination for admin order notifications. |
+| `SUPPORT_EMAIL` | Optional reply-to/support address shown in customer emails. |
+| `PAYPAL_WEBHOOK_ID` | Optional. The app can auto-create and store a Sandbox webhook; set this only if managing it manually. |
 
 ## Railway Notes
 
@@ -41,5 +49,6 @@ Open `http://localhost:3000`.
 4. Set `PUBLIC_BASE_URL` to the Railway public domain.
 5. Keep `PAYPAL_MODE=sandbox` until testing is complete.
 6. Switch to `PAYPAL_MODE=live` only after adding live PayPal credentials and approving the change.
+7. Add Resend email variables only when you are ready for customer emails; the checkout flow works without them.
 
 The app still works without PostgreSQL, but local JSON storage is not recommended for production because platform filesystems can be temporary.

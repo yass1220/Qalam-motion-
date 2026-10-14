@@ -17,7 +17,19 @@ app.use(express.json({
     req.rawBody = buffer.toString('utf8');
   }
 }));
-app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, limit: 80, standardHeaders: 'draft-7', legacyHeaders: false }));
+const apiLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 80, standardHeaders: 'draft-7', legacyHeaders: false });
+const adminLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many admin login attempts. Try again later.' }
+});
+app.use('/api', apiLimiter);
+app.use('/admin.html', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 app.use(express.static('public'));
 
 const mode = process.env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox';
@@ -67,7 +79,12 @@ function adminTokenMatches(supplied) {
 function parseCookies(req) {
   return Object.fromEntries((req.headers.cookie || '').split(';').map(part => {
     const [key, ...value] = part.trim().split('=');
-    return [key, decodeURIComponent(value.join('=') || '')];
+    const rawValue = value.join('=') || '';
+    try {
+      return [key, decodeURIComponent(rawValue)];
+    } catch {
+      return [key, rawValue];
+    }
   }).filter(([key]) => key));
 }
 
@@ -504,7 +521,7 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
 }
 
 function orderUrl(order) {
-  return `${publicBaseUrl}/status.html`;
+  return `${publicBaseUrl}/status.html?orderId=${encodeURIComponent(order.id)}`;
 }
 
 function orderSummary(order) {
@@ -756,7 +773,7 @@ app.post('/api/orders', async (req, res) => {
 app.post('/api/orders/:paypalOrderId/capture', async (req, res) => {
   const record = await store.findByPayPalOrderId(req.params.paypalOrderId);
   if (!record) return fail(res, 404, 'Order not found');
-  if (record.status === 'PAID') return res.json({ status: 'PAID', orderId: record.id });
+  if (record.status === 'PAID') return res.json({ status: 'PAID', orderId: record.id, statusUrl: orderUrl(record) });
 
   try {
     // PayPal is authoritative. Never trust a client-side success redirect alone.
@@ -768,7 +785,7 @@ app.post('/api/orders/:paypalOrderId/capture', async (req, res) => {
     }
 
     const paidOrder = await finishPaidOrder(record, capture);
-    res.json({ status: 'PAID', orderId: paidOrder.id });
+    res.json({ status: 'PAID', orderId: paidOrder.id, statusUrl: orderUrl(paidOrder) });
   } catch (error) {
     console.error(error);
     fail(res, 502, 'Could not confirm payment. Do not pay again; contact support with your order reference.');
@@ -864,7 +881,7 @@ app.get('/api/admin/session', async (req, res) => {
   res.set('Cache-Control', 'no-store').json(await adminSessionPayload());
 });
 
-app.post('/api/admin/login', async (req, res) => {
+app.post('/api/admin/login', adminLoginLimiter, async (req, res) => {
   const token = clean(req.body?.token, 500);
   if (!adminTokenMatches(token)) return fail(res, 401, 'Unauthorized');
   setAdminSession(res);
