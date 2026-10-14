@@ -47,6 +47,7 @@ const adminSessionTtlMs = 8 * 60 * 60 * 1000;
 const supportEmail = clean(process.env.SUPPORT_EMAIL || process.env.ADMIN_EMAIL, 254);
 const paypalWebhookSettingKey = 'paypalWebhookId';
 const paypalWebhookUrlSettingKey = 'paypalWebhookUrl';
+const resendDomain = clean(process.env.RESEND_DOMAIN || 'mail.qalammotion.com', 253).toLowerCase();
 
 function fail(res, status, message) {
   return res.status(status).json({ error: message });
@@ -128,6 +129,18 @@ function adminAuthorized(req) {
 
 function requireAdmin(req, res) {
   if (adminAuthorized(req)) return true;
+  fail(res, 401, 'Unauthorized');
+  return false;
+}
+
+function setupAuthorized(req) {
+  const expected = clean(process.env.SETUP_TOKEN, 500);
+  const supplied = (req.headers.authorization || '').match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || '';
+  return Boolean(expected && safeEqual(supplied, expected));
+}
+
+function requireSetup(req, res) {
+  if (setupAuthorized(req)) return true;
   fail(res, 401, 'Unauthorized');
   return false;
 }
@@ -533,6 +546,63 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     throw Error(`Email send failed (${response.status}): ${body.slice(0, 200)}`);
   }
   return true;
+}
+
+async function resendApi(pathname, method, body) {
+  if (!process.env.RESEND_API_KEY) throw Error('Resend API key is not configured');
+  const response = await fetch(`https://api.resend.com${pathname}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  });
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw Error(`Resend ${method} failed (${response.status}): ${JSON.stringify(json).slice(0, 300)}`);
+  }
+  return json;
+}
+
+function publicResendDomain(domain) {
+  return {
+    id: domain?.id,
+    name: domain?.name,
+    status: domain?.status,
+    region: domain?.region,
+    records: Array.isArray(domain?.records) ? domain.records.map(record => ({
+      record: record.record,
+      name: record.name,
+      type: record.type,
+      value: record.value,
+      priority: record.priority,
+      status: record.status
+    })) : []
+  };
+}
+
+async function findResendDomain(name) {
+  const listed = await resendApi('/domains', 'GET');
+  return (listed.data || []).find(domain => domain.name === name) || null;
+}
+
+async function ensureResendDomain() {
+  let domain = await findResendDomain(resendDomain);
+  if (!domain) {
+    domain = await resendApi('/domains', 'POST', {
+      name: resendDomain,
+      region: 'eu-west-1',
+      capabilities: {
+        sending: 'enabled',
+        receiving: 'disabled'
+      }
+    });
+  }
+  if (!Array.isArray(domain.records)) {
+    domain = await resendApi(`/domains/${encodeURIComponent(domain.id)}`, 'GET');
+  }
+  return domain;
 }
 
 function orderUrl(order) {
@@ -976,6 +1046,32 @@ app.post('/api/admin/email-test', async (req, res) => {
   } catch (error) {
     console.error(error);
     fail(res, 502, 'Could not send test email');
+  }
+});
+
+app.post('/api/setup/email-domain', async (req, res) => {
+  if (!requireSetup(req, res)) return;
+
+  try {
+    const domain = await ensureResendDomain();
+    res.set('Cache-Control', 'no-store').json(publicResendDomain(domain));
+  } catch (error) {
+    console.error(error);
+    fail(res, 502, 'Could not set up Resend domain');
+  }
+});
+
+app.post('/api/setup/email-domain/verify', async (req, res) => {
+  if (!requireSetup(req, res)) return;
+
+  try {
+    const domain = await ensureResendDomain();
+    await resendApi(`/domains/${encodeURIComponent(domain.id)}/verify`, 'POST');
+    const refreshed = await resendApi(`/domains/${encodeURIComponent(domain.id)}`, 'GET');
+    res.set('Cache-Control', 'no-store').json(publicResendDomain(refreshed));
+  } catch (error) {
+    console.error(error);
+    fail(res, 502, 'Could not verify Resend domain');
   }
 });
 
