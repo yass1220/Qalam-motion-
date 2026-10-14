@@ -141,7 +141,8 @@
       $('login-row').classList.toggle('hidden', isAuthenticated);
       $('logged-in').classList.toggle('hidden', !isAuthenticated);
       if (isAuthenticated) $('token').value = '';
-      $('email-config').textContent = `الإيميل: ${sessionInfo.emailConfigured ? 'مفعّل' : 'غير مفعّل'}`;
+      const emailState = !sessionInfo.emailConfigured ? 'غير مفعّل' : sessionInfo.emailTestMode ? 'اختبار فقط' : 'مفعّل';
+      $('email-config').textContent = `الإيميل: ${emailState}`;
       $('webhook-config').textContent = `ويبهوك بايبال: ${sessionInfo.webhookConfigured ? 'مفعّل' : 'غير مفعّل'}`;
       $('setup-webhook').disabled = !isAuthenticated || Boolean(sessionInfo.webhookConfigured);
       $('test-email').disabled = !isAuthenticated || !sessionInfo.emailConfigured;

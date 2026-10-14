@@ -492,6 +492,20 @@ function emailsConfigured() {
   return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
 }
 
+function adminEmail() {
+  return clean(process.env.ADMIN_EMAIL || '', 254);
+}
+
+function resendTestMode() {
+  return /(^|<)onboarding@resend\.dev>?$/i.test(clean(process.env.EMAIL_FROM, 254));
+}
+
+function canSendNotificationTo(email) {
+  const recipient = clean(email, 254).toLowerCase();
+  const admin = adminEmail().toLowerCase();
+  return emailsConfigured() && validEmail(recipient) && (!resendTestMode() || recipient === admin);
+}
+
 async function sendEmail({ to, subject, text, html, replyTo }) {
   if (!emailsConfigured() || !validEmail(to)) return false;
 
@@ -539,10 +553,36 @@ function orderSummary(order) {
 }
 
 async function notifyPaidOrder(order) {
-  const tasks = [];
   const trackUrl = orderUrl(order);
+  const admin = adminEmail();
+  const customerCanReceive = canSendNotificationTo(order.email);
 
-  tasks.push(sendEmail({
+  if (validEmail(admin)) {
+    await sendEmail({
+      to: admin,
+      subject: `طلب مدفوع جديد - ${order.packageId}`,
+      replyTo: resendTestMode() ? '' : order.email,
+      text: [
+        orderSummary(order),
+        !customerCanReceive ? 'Customer email was skipped because Resend is still using the testing sender. Verify a domain in Resend before launch.' : ''
+      ].filter(Boolean).join('\n\n'),
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f1f1f">
+          <h2>New paid Qalam Motion order</h2>
+          ${!customerCanReceive ? '<p><strong>Customer email skipped:</strong> Resend is still using the testing sender. Verify a domain in Resend before launch.</p>' : ''}
+          <pre style="white-space:pre-wrap;background:#f6f2eb;padding:16px;border-radius:8px">${escapeHtml(orderSummary(order))}</pre>
+          <p><a href="${publicBaseUrl}/admin.html">Open admin dashboard</a></p>
+        </div>
+      `
+    }).catch(error => console.warn(`Admin order email failed: ${error.message}`));
+  }
+
+  if (!customerCanReceive) {
+    console.warn('Customer order email skipped: Resend testing sender only allows the verified account email.');
+    return;
+  }
+
+  await sendEmail({
     to: order.email,
     subject: 'تم تأكيد طلبك في قلم موشن',
     replyTo: supportEmail,
@@ -566,25 +606,7 @@ async function notifyPaidOrder(order) {
         <p>سنراجع التفاصيل ونتواصل معك إذا احتجنا أي معلومات إضافية.</p>
       </div>
     `
-  }).catch(error => console.warn(error.message)));
-
-  if (validEmail(process.env.ADMIN_EMAIL || '')) {
-    tasks.push(sendEmail({
-      to: process.env.ADMIN_EMAIL,
-      subject: `طلب مدفوع جديد - ${order.packageId}`,
-      replyTo: order.email,
-      text: orderSummary(order),
-      html: `
-        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f1f1f">
-          <h2>New paid Qalam Motion order</h2>
-          <pre style="white-space:pre-wrap;background:#f6f2eb;padding:16px;border-radius:8px">${escapeHtml(orderSummary(order))}</pre>
-          <p><a href="${publicBaseUrl}/admin.html">Open admin dashboard</a></p>
-        </div>
-      `
-    }).catch(error => console.warn(error.message)));
-  }
-
-  await Promise.all(tasks);
+  }).catch(error => console.warn(`Customer order email failed: ${error.message}`));
 }
 
 async function configuredPayPalWebhookId() {
@@ -873,6 +895,7 @@ async function adminSessionPayload() {
   return {
     authenticated: true,
     emailConfigured: emailsConfigured(),
+    emailTestMode: resendTestMode(),
     webhookConfigured: (await webhookStatus()).configured
   };
 }
