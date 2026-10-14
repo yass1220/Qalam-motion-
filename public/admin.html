@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>لوحة الطلبات | قلم موشن</title>
+  <style>
+    *{box-sizing:border-box}
+    :root{--bg:#171819;--panel:#232221;--line:#665445;--gold:#e9c38b;--muted:#bab7b0;--cream:#fff3dd}
+    body{margin:0;background:radial-gradient(circle at 80% 0,#3c3425,#111316 45%);color:#f7efe2;font:16px Tahoma,"Noto Naskh Arabic",Arial,system-ui,sans-serif}
+    a{color:inherit;text-decoration:none}.wrap{max-width:1120px;margin:auto;padding:28px}
+    header{display:flex;justify-content:space-between;gap:18px;align-items:center;border-bottom:1px solid rgba(255,225,185,.16);padding-bottom:20px;margin-bottom:28px}.brand{font-weight:800;color:var(--gold);font-size:24px}.muted{color:var(--muted);line-height:1.7}
+    .button{background:var(--gold);color:#171411;border:0;padding:13px 18px;border-radius:12px;font-weight:800;cursor:pointer;display:inline-block}.button.secondary{background:#2a2827;color:#fff0d8;border:1px solid var(--line)}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px}
+    label{display:block;margin:0 0 8px}input{width:100%;padding:14px;border-radius:10px;background:#111316;color:white;border:1px solid #686159;font:inherit;direction:ltr;text-align:left}.login-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}
+    .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.stats{display:flex;gap:10px;flex-wrap:wrap}.stat{background:#1c1c1b;border:1px solid #4d443d;border-radius:999px;padding:8px 13px;color:#ead9bd;font-size:13px}
+    table{width:100%;border-collapse:separate;border-spacing:0 10px}th{color:#d8bd8f;text-align:right;font-size:13px;font-weight:700;padding:0 12px}td{background:#20201f;border-top:1px solid #4d443d;border-bottom:1px solid #4d443d;padding:14px 12px;vertical-align:top;line-height:1.6}td:first-child{border-right:1px solid #4d443d;border-radius:0 12px 12px 0}td:last-child{border-left:1px solid #4d443d;border-radius:12px 0 0 12px}.ltr{direction:ltr;text-align:left}.status{display:inline-block;border-radius:999px;padding:4px 10px;font-weight:800;font-size:12px}.paid{background:#254531;color:#b9efc6}.waiting{background:#4a3726;color:#ffd098}.brief{max-width:390px;white-space:pre-wrap}.empty{display:none;text-align:center;padding:40px;color:var(--muted)}#message{color:#f2cd95;margin-top:12px;line-height:1.7}
+    @media(max-width:800px){.login-row{grid-template-columns:1fr}table,thead,tbody,tr,th,td{display:block}thead{display:none}tr{background:#20201f;border:1px solid #4d443d;border-radius:12px;margin-bottom:14px;padding:8px}td{border:0!important;border-radius:0!important;background:transparent;padding:8px 10px}td:before{content:attr(data-label);display:block;color:#d8bd8f;font-size:12px;margin-bottom:3px}.brief{max-width:none}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <a class="brand" href="/">قلم موشن</a>
+        <p class="muted">لوحة داخلية لقراءة الطلبات المدفوعة والطلبات التي تنتظر الدفع.</p>
+      </div>
+      <a class="button secondary" href="/">العودة للموقع</a>
+    </header>
+
+    <section class="panel">
+      <div class="login-row">
+        <div>
+          <label for="token">رمز الإدارة</label>
+          <input id="token" type="password" autocomplete="current-password" placeholder="ADMIN_TOKEN">
+        </div>
+        <button id="load" class="button">عرض الطلبات</button>
+      </div>
+      <div id="message" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="panel">
+      <div class="toolbar">
+        <div class="stats">
+          <span class="stat" id="total">0 طلب</span>
+          <span class="stat" id="paid">0 مدفوع</span>
+          <span class="stat" id="waiting">0 ينتظر الدفع</span>
+        </div>
+        <button id="export" class="button secondary" type="button">تحميل CSV</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <table>
+        <thead>
+          <tr>
+            <th>الحالة</th>
+            <th>الباقة</th>
+            <th>العميل</th>
+            <th>التواصل</th>
+            <th>الفكرة</th>
+            <th>التاريخ</th>
+          </tr>
+        </thead>
+        <tbody id="orders"></tbody>
+      </table>
+      <div id="empty" class="empty">لا توجد طلبات بعد.</div>
+    </section>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let currentOrders = [];
+    $('token').value = localStorage.getItem('qalam_admin_token') || '';
+
+    function statusLabel(status) {
+      return status === 'PAID' ? 'مدفوع' : 'ينتظر الدفع';
+    }
+
+    function escapeCsv(value) {
+      return `"${String(value ?? '').replaceAll('"', '""')}"`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function render(orders) {
+      currentOrders = orders;
+      $('total').textContent = `${orders.length} طلب`;
+      $('paid').textContent = `${orders.filter(order => order.status === 'PAID').length} مدفوع`;
+      $('waiting').textContent = `${orders.filter(order => order.status !== 'PAID').length} ينتظر الدفع`;
+      $('empty').style.display = orders.length ? 'none' : 'block';
+      $('orders').innerHTML = orders.map(order => `
+        <tr>
+          <td data-label="الحالة"><span class="status ${order.status === 'PAID' ? 'paid' : 'waiting'}">${statusLabel(order.status)}</span></td>
+          <td data-label="الباقة"><strong>${escapeHtml(order.packageId)}</strong><br><span class="muted ltr">${escapeHtml(order.amount)} ${escapeHtml(order.currency || 'USD')}</span></td>
+          <td data-label="العميل"><strong>${escapeHtml(order.name)}</strong><br><span class="muted ltr">${escapeHtml(order.email)}</span></td>
+          <td data-label="التواصل" class="ltr">${escapeHtml(order.contact || '-')}</td>
+          <td data-label="الفكرة" class="brief">${escapeHtml(order.brief)}</td>
+          <td data-label="التاريخ" class="ltr">${new Date(order.createdAt).toLocaleString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadOrders() {
+      const token = $('token').value.trim();
+      localStorage.setItem('qalam_admin_token', token);
+      $('message').textContent = 'جار تحميل الطلبات...';
+      try {
+        const response = await fetch('/api/admin/orders', { headers: { Authorization: `Bearer ${token}` } });
+        const json = await response.json();
+        if (!response.ok) throw Error(json.error || 'تعذر تحميل الطلبات');
+        render(json);
+        $('message').textContent = 'تم تحميل الطلبات بنجاح.';
+      } catch (error) {
+        $('message').textContent = error.message;
+      }
+    }
+
+    $('load').addEventListener('click', loadOrders);
+    $('token').addEventListener('keydown', event => {
+      if (event.key === 'Enter') loadOrders();
+    });
+    $('export').addEventListener('click', () => {
+      const header = ['id','status','packageId','amount','currency','name','email','contact','brief','createdAt','paidAt','captureId'];
+      const rows = [header.join(','), ...currentOrders.map(order => header.map(key => escapeCsv(order[key])).join(','))];
+      const url = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `qalam-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
