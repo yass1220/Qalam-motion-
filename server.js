@@ -22,6 +22,7 @@ const catalog = {
   short: { name: 'Short Story', price: '29.00', duration: 'Up to 20 seconds' },
   signature: { name: 'Signature Reel', price: '59.00', duration: 'Up to 45 seconds' }
 };
+const fulfillmentStatuses = new Set(['NEW', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'DELIVERED', 'CANCELLED']);
 
 function fail(res, status, message) {
   return res.status(status).json({ error: message });
@@ -36,8 +37,66 @@ function validEmail(value) {
 }
 
 function safeEqual(a, b) {
-  if (!a || !b || a.length !== b.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  const left = Buffer.from(a || '');
+  const right = Buffer.from(b || '');
+  if (!left.length || left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+}
+
+function adminAuthorized(req) {
+  const expected = process.env.ADMIN_TOKEN;
+  const supplied = (req.headers.authorization || '').match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || '';
+  return Boolean(expected && !expected.startsWith('replace_') && safeEqual(supplied, expected));
+}
+
+function requireAdmin(req, res) {
+  if (adminAuthorized(req)) return true;
+  fail(res, 401, 'Unauthorized');
+  return false;
+}
+
+function normalizeOrder(order) {
+  if (!order) return null;
+  return {
+    ...order,
+    fulfillmentStatus: fulfillmentStatuses.has(order?.fulfillmentStatus) ? order.fulfillmentStatus : 'NEW',
+    adminNotes: clean(order?.adminNotes, 3000),
+    updatedAt: order?.updatedAt || order?.paidAt || order?.createdAt || new Date().toISOString()
+  };
+}
+
+function adminOrder(order) {
+  return {
+    id: order.id,
+    packageId: order.packageId,
+    amount: order.amount,
+    currency: order.currency,
+    name: order.name,
+    email: order.email,
+    contact: order.contact,
+    brief: order.brief,
+    status: order.status,
+    fulfillmentStatus: order.fulfillmentStatus || 'NEW',
+    adminNotes: order.adminNotes || '',
+    createdAt: order.createdAt,
+    paidAt: order.paidAt,
+    updatedAt: order.updatedAt,
+    captureId: order.captureId
+  };
+}
+
+function customerOrder(order) {
+  return {
+    id: order.id,
+    packageId: order.packageId,
+    amount: order.amount,
+    currency: order.currency,
+    status: order.status,
+    fulfillmentStatus: order.fulfillmentStatus || 'NEW',
+    createdAt: order.createdAt,
+    paidAt: order.paidAt,
+    updatedAt: order.updatedAt
+  };
 }
 
 function createStore() {
@@ -65,13 +124,18 @@ function createPostgresStore() {
         contact text,
         brief text not null,
         status text not null,
+        fulfillment_status text not null default 'NEW',
+        admin_notes text not null default '',
         capture_id text,
         created_at timestamptz not null,
         paid_at timestamptz,
         updated_at timestamptz not null default now()
       )
     `);
+    await pool.query("alter table orders add column if not exists fulfillment_status text not null default 'NEW'");
+    await pool.query("alter table orders add column if not exists admin_notes text not null default ''");
     await pool.query('create index if not exists orders_status_created_idx on orders (status, created_at desc)');
+    await pool.query('create index if not exists orders_fulfillment_created_idx on orders (fulfillment_status, created_at desc)');
   }
 
   function rowToOrder(row) {
@@ -87,9 +151,12 @@ function createPostgresStore() {
       contact: row.contact || '',
       brief: row.brief,
       status: row.status,
+      fulfillmentStatus: row.fulfillment_status || 'NEW',
+      adminNotes: row.admin_notes || '',
       captureId: row.capture_id || undefined,
       createdAt: row.created_at?.toISOString?.() || row.created_at,
-      paidAt: row.paid_at?.toISOString?.() || row.paid_at || undefined
+      paidAt: row.paid_at?.toISOString?.() || row.paid_at || undefined,
+      updatedAt: row.updated_at?.toISOString?.() || row.updated_at
     };
   }
 
@@ -103,6 +170,10 @@ function createPostgresStore() {
          values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,now())`,
         [order.id, order.paypalOrderId, order.packageId, order.amount, order.currency, order.name, order.email, order.contact, order.brief, order.status, order.createdAt]
       );
+    },
+    async findById(orderId) {
+      const result = await pool.query('select * from orders where id=$1 limit 1', [orderId]);
+      return rowToOrder(result.rows[0]);
     },
     async findByPayPalOrderId(paypalOrderId) {
       const result = await pool.query('select * from orders where paypal_order_id=$1 limit 1', [paypalOrderId]);
@@ -118,9 +189,24 @@ function createPostgresStore() {
       );
       return rowToOrder(result.rows[0]);
     },
+    async updateManagement(orderId, updates) {
+      const result = await pool.query(
+        `update orders
+           set fulfillment_status=coalesce($2, fulfillment_status),
+               admin_notes=coalesce($3, admin_notes),
+               updated_at=now()
+         where id=$1
+         returning *`,
+        [orderId, updates.fulfillmentStatus ?? null, updates.adminNotes ?? null]
+      );
+      return rowToOrder(result.rows[0]);
+    },
     async listOrders() {
       const result = await pool.query('select * from orders order by created_at desc limit 500');
       return result.rows.map(rowToOrder);
+    },
+    async health() {
+      await pool.query('select 1');
     }
   };
 }
@@ -146,17 +232,20 @@ function createJsonStore() {
       await fs.mkdir(dataDir, { recursive: true });
       try {
         const parsed = JSON.parse(await fs.readFile(file, 'utf8'));
-        orders = Array.isArray(parsed) ? parsed : [];
+        orders = Array.isArray(parsed) ? parsed.map(normalizeOrder) : [];
       } catch (error) {
         if (error.code !== 'ENOENT') throw error;
       }
     },
     async createOrder(order) {
-      orders.push(order);
+      orders.push(normalizeOrder(order));
       await persist();
     },
+    async findById(orderId) {
+      return normalizeOrder(orders.find(order => order.id === orderId) || null);
+    },
     async findByPayPalOrderId(paypalOrderId) {
-      return orders.find(order => order.paypalOrderId === paypalOrderId) || null;
+      return normalizeOrder(orders.find(order => order.paypalOrderId === paypalOrderId) || null);
     },
     async markPaid(orderId, captureId) {
       const order = orders.find(item => item.id === orderId);
@@ -164,11 +253,24 @@ function createJsonStore() {
       order.status = 'PAID';
       order.captureId = captureId;
       order.paidAt = new Date().toISOString();
+      order.updatedAt = new Date().toISOString();
       await persist();
-      return order;
+      return normalizeOrder(order);
+    },
+    async updateManagement(orderId, updates) {
+      const order = orders.find(item => item.id === orderId);
+      if (!order) return null;
+      if (updates.fulfillmentStatus) order.fulfillmentStatus = updates.fulfillmentStatus;
+      if (typeof updates.adminNotes === 'string') order.adminNotes = updates.adminNotes;
+      order.updatedAt = new Date().toISOString();
+      await persist();
+      return normalizeOrder(order);
     },
     async listOrders() {
-      return [...orders].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return [...orders].map(normalizeOrder).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    },
+    async health() {
+      return true;
     }
   };
 }
@@ -269,6 +371,8 @@ app.post('/api/orders', async (req, res) => {
       contact,
       brief,
       status: 'AWAITING_PAYMENT',
+      fulfillmentStatus: 'NEW',
+      adminNotes: '',
       createdAt: new Date().toISOString()
     };
 
@@ -305,29 +409,53 @@ app.post('/api/orders/:paypalOrderId/capture', async (req, res) => {
   }
 });
 
-app.get('/api/admin/orders', async (req, res) => {
-  const expected = process.env.ADMIN_TOKEN;
-  const supplied = (req.headers.authorization || '').replace(/^Bearer /, '');
-  if (!expected || expected.startsWith('replace_') || !safeEqual(supplied, expected)) return fail(res, 401, 'Unauthorized');
+app.post('/api/orders/status', async (req, res) => {
+  const orderId = clean(req.body?.orderId, 80);
+  const email = clean(req.body?.email, 254).toLowerCase();
+  if (!orderId || !validEmail(email)) return fail(res, 400, 'Enter a valid order reference and email.');
 
-  const orders = await store.listOrders();
-  res.set('Cache-Control', 'no-store').json(orders.map(({ id, packageId, amount, currency, name, email, contact, brief, status, createdAt, paidAt, captureId }) => ({
-    id,
-    packageId,
-    amount,
-    currency,
-    name,
-    email,
-    contact,
-    brief,
-    status,
-    createdAt,
-    paidAt,
-    captureId
-  })));
+  const record = await store.findById(orderId);
+  if (!record || record.email.toLowerCase() !== email) return fail(res, 404, 'Order not found');
+
+  res.set('Cache-Control', 'no-store').json(customerOrder(record));
 });
 
-app.get('/health', (req, res) => res.json({ ok: true, storage: store.type }));
+app.get('/api/admin/orders', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+
+  const orders = await store.listOrders();
+  res.set('Cache-Control', 'no-store').json(orders.map(adminOrder));
+});
+
+app.patch('/api/admin/orders/:id', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+
+  const updates = {};
+  if (Object.hasOwn(req.body || {}, 'fulfillmentStatus')) {
+    const fulfillmentStatus = clean(req.body.fulfillmentStatus, 40).toUpperCase();
+    if (!fulfillmentStatuses.has(fulfillmentStatus)) return fail(res, 400, 'Invalid fulfillment status');
+    updates.fulfillmentStatus = fulfillmentStatus;
+  }
+  if (Object.hasOwn(req.body || {}, 'adminNotes')) {
+    updates.adminNotes = clean(req.body.adminNotes, 3000);
+  }
+  if (!Object.keys(updates).length) return fail(res, 400, 'No order updates supplied');
+
+  const order = await store.updateManagement(clean(req.params.id, 80), updates);
+  if (!order) return fail(res, 404, 'Order not found');
+
+  res.set('Cache-Control', 'no-store').json(adminOrder(order));
+});
+
+app.get('/health', async (req, res) => {
+  try {
+    await store.health();
+    res.json({ ok: true, storage: store.type });
+  } catch (error) {
+    console.error(error);
+    res.status(503).json({ ok: false, storage: store.type });
+  }
+});
 
 app.listen(Number(process.env.PORT) || 3000, () => {
   console.log(`Qalam Motion running on port ${process.env.PORT || 3000} (${mode}, ${store.type})`);
