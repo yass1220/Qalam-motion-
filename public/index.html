@@ -1,51 +1,259 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>قلم موشن | استوديو الفيديوهات المرسومة</title><style>
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#3c3425,#111316 45%);color:#f4f0e8;font:16px Tahoma,Arial,system-ui,sans-serif}header,main,footer{max-width:1060px;margin:auto;padding:25px}header{display:flex;justify-content:space-between;align-items:center}.logo{font-size:25px;font-weight:800;color:#f1c789}a{color:inherit;text-decoration:none}.button{background:#e9c38b;color:#171411;border:0;padding:14px 20px;border-radius:12px;font-weight:800;cursor:pointer;display:inline-block}.button:disabled{opacity:.5}h1{font-size:clamp(48px,8vw,90px);line-height:1.05;letter-spacing:normal;margin:20px 0}h2{font-size:36px;letter-spacing:normal}.gold{color:#e9c38b}.muted{color:#bab7b0;line-height:1.7}.hero{padding:70px 0;max-width:780px}.hero p{font-size:19px}input[type=email]{direction:ltr;text-align:right}.price{direction:ltr;unicode-bidi:isolate;display:inline-block}.eyebrow{font-size:12px;letter-spacing:normal;color:#e9c38b;font-weight:700}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin:30px 0 70px}.card{background:#1d2023;border:1px solid #555046;border-radius:20px;padding:26px}.featured{border-color:#d3a96b}.price{font-size:48px;font-weight:800;color:#e9c38b}.formgrid{display:grid;grid-template-columns:1fr 1.2fr;gap:35px;margin:70px 0}label{display:block;margin:17px 0 7px}input,select,textarea{width:100%;padding:14px;border-radius:10px;background:#111316;color:white;border:1px solid #686159;font:inherit}textarea{min-height:130px}#message{color:#f2cd95;line-height:1.6;margin-top:15px}footer{border-top:1px solid #444;color:#aaa;font-size:13px}@media(max-width:700px){.grid,.formgrid{grid-template-columns:1fr}.hero{padding:35px 0}}
-/* Hero uses a real image asset; text and buttons remain accessible HTML. */
-header{position:relative;z-index:2;max-width:none;padding-inline:max(25px,calc((100vw - 1060px)/2));background:#171717a8}
-main{max-width:none;padding:0}main>section:not(.hero){max-width:1060px;margin-inline:auto;padding-inline:25px}
-.hero{max-width:none;min-height:650px;padding:125px max(25px,calc((100vw - 1060px)/2)) 125px;position:relative;isolation:isolate;background:#2c2724;display:flex;flex-direction:column;align-items:flex-start;justify-content:center}
-.hero:before{content:"";position:absolute;inset:0;z-index:-2;background-image:url('./hero-watercolor.jpg');background-size:cover;background-position:center 45%}
-.hero:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(270deg,rgba(23,21,21,.89) 0%,rgba(29,24,24,.74) 48%,rgba(27,23,23,.30) 100%)}
-.hero h1{max-width:780px;font-size:clamp(39px,6.5vw,78px);line-height:1.35;text-shadow:0 2px 18px #17171775}
-.hero p{max-width:660px;color:#f3e9d9;text-shadow:0 2px 10px #171717a6}
-.hero .eyebrow{color:#ffe2a7}
-@media(max-width:700px){header{padding:18px}.hero{min-height:590px;padding:75px 22px}.hero:after{background:linear-gradient(270deg,rgba(23,21,21,.86),rgba(23,21,21,.53))}.hero h1{font-size:clamp(36px,9vw,53px)}}
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>قلم موشن | استوديو الفيديوهات المرسومة</title>
+  <meta name="description" content="قلم موشن يحول القصص والأفكار إلى فيديوهات مرسومة باليد بأسلوب ألوان مائية وحركة سينمائية.">
+  <style>
+    *{box-sizing:border-box}
+    :root{--ink:#171819;--panel:#232221;--panel2:#2b251f;--line:#665445;--gold:#e9c38b;--gold2:#ffdf9e;--cream:#fff3dd;--muted:#bab7b0}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:radial-gradient(circle at 80% 0,#3c3425,#111316 45%);color:#f7efe2;font:16px Tahoma,"Noto Naskh Arabic",Arial,system-ui,sans-serif}
+    a{color:inherit;text-decoration:none}
+    header,main,footer{max-width:1060px;margin:auto;padding:25px}
+    header{display:flex;justify-content:space-between;align-items:center;position:relative;z-index:2;max-width:none;min-height:86px;padding-inline:max(32px,calc((100vw - 1300px)/2));gap:24px;background:rgba(31,27,25,.86);border-bottom:1px solid rgba(255,225,185,.16)}
+    main{max-width:none;padding:0}
+    main>section:not(.hero){max-width:1120px;margin-inline:auto;padding:76px 25px}
+    footer{max-width:1120px;border-top:1px solid #444;color:#aaa;font-size:13px;line-height:1.8}
+    .logo{display:flex;align-items:center;gap:12px;font-size:24px;font-weight:800;color:#f1c789;white-space:nowrap;line-height:1.2}
+    .logo strong{display:block}.logo small{display:block;font:10px Georgia,serif;letter-spacing:2.4px;color:#d4b38a;margin-top:6px}.logo-icon{font-size:30px;color:var(--gold)}
+    nav{display:flex;align-items:center;gap:30px;font-weight:600;font-size:15px}nav a{transition:color .2s}nav a:hover{color:var(--gold)}
+    .button{background:var(--gold);color:#171411;border:0;padding:14px 20px;border-radius:12px;font-weight:800;cursor:pointer;display:inline-block;text-align:center}
+    .button:hover{filter:brightness(1.04)}.button:disabled{opacity:.5;cursor:not-allowed}.button-outline{background:rgba(24,19,19,.62);color:#fff0d8;border:1px solid #e8c695;backdrop-filter:blur(8px)}
+    h1{font-size:clamp(44px,5.7vw,82px);line-height:1.48;letter-spacing:normal;margin:18px 0 10px}
+    h2{font-size:clamp(30px,4vw,46px);line-height:1.45;letter-spacing:normal;margin:10px 0 16px}
+    h3{font-size:24px;margin:0 0 12px}.gold{color:var(--gold)}.muted{color:var(--muted);line-height:1.8}.eyebrow{font-size:13px;letter-spacing:normal;color:var(--gold);font-weight:700}
+    .price{direction:ltr;unicode-bidi:isolate;display:inline-block;font-size:48px;font-weight:800;color:var(--gold)}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin:30px 0}.grid.three{grid-template-columns:repeat(3,1fr)}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px}.featured{background:var(--panel2);border-color:#d3a96b}
+    .section-head{max-width:720px}.section-head.center{margin:auto;text-align:center}
+    .mini-list{display:grid;gap:12px;margin:20px 0 0;padding:0;list-style:none}.mini-list li{position:relative;padding-right:24px;color:#e7dccb;line-height:1.7}.mini-list li:before{content:"";position:absolute;right:0;top:.75em;width:9px;height:9px;border-radius:50%;background:var(--gold)}
 
-/* Qalam Motion visual refresh — works with local file:// previews */
-:root{--ink:#2b211f;--cream:#fff3dd;--gold:#dcae72}
-body{background:#171819;color:#f7efe2;font-family:Tahoma,"Noto Naskh Arabic",Arial,sans-serif}
-header{min-height:86px;background:rgba(31,27,25,.86);border-bottom:1px solid rgba(255,225,185,.16);padding-inline:max(32px,calc((100vw - 1300px)/2));gap:24px}
-.logo{display:flex;align-items:center;gap:12px;font-size:24px;white-space:nowrap;line-height:1.2}.logo strong{display:block}.logo small{display:block;font:10px Georgia,serif;letter-spacing:2.4px;color:#d4b38a;margin-top:6px}.logo-icon{font-size:30px;color:#e9c38b}
-nav{display:flex;align-items:center;gap:34px;font-weight:600;font-size:15px}nav a{transition:color .2s}nav a:hover{color:#e9c38b}
-.nav-cta{font-size:14px}
-.hero{min-height:min(750px,calc(100svh - 86px));padding:105px max(30px,calc((100vw - 1200px)/2)) 95px;align-items:center;text-align:center;background:#b99b7d;overflow:hidden}
-.hero:before{background-image:url('./hero-watercolor.jpg');background-position:center center;background-size:100% auto;background-repeat:no-repeat;filter:saturate(.94)}
-.hero:after{background:linear-gradient(180deg,rgba(28,24,23,.16),rgba(37,28,25,.19) 45%,rgba(30,23,22,.55)),radial-gradient(ellipse at 50% 48%,rgba(37,27,26,.63),rgba(41,29,26,.25) 58%,rgba(39,28,24,.08) 90%)}
-.hero-content{position:relative;z-index:1;max-width:850px;display:flex;flex-direction:column;align-items:center}
-.hero .eyebrow{background:rgba(31,25,23,.58);padding:10px 20px;border:1px solid rgba(255,235,201,.36);border-radius:30px;font-size:14px;color:#ffe4b7;backdrop-filter:blur(6px)}
-.hero h1{font-size:clamp(44px,5.7vw,82px);line-height:1.48;max-width:950px;margin:18px 0 10px;color:#fff7eb;text-shadow:0 4px 22px rgba(25,20,20,.75);font-weight:800}
-.hero .gold{color:#ffdf9e}.hero p{font-size:clamp(16px,1.5vw,21px);line-height:2;max-width:680px;color:#fff5e8;text-shadow:0 2px 12px #241b19}
-.hero-actions{display:flex;justify-content:center;gap:15px;flex-wrap:wrap;margin:25px 0 28px}.hero-actions .button{min-width:180px;padding:16px 24px;font-size:16px;box-shadow:0 7px 28px #1d17174d}.button-outline{background:rgba(24,19,19,.62);color:#fff0d8;border:1px solid #e8c695;backdrop-filter:blur(8px)}
-.hero-notes{display:flex;gap:25px;flex-wrap:wrap;justify-content:center;font-size:13px;color:#ffeed8;text-shadow:0 2px 9px #171211}
-.scroll-hint{position:absolute;bottom:26px;font-size:13px;color:#ffead1;text-shadow:0 2px 8px #171211}
-.work-section{padding-top:78px;padding-bottom:36px}.work-section h2{line-height:1.5}.work-section p{max-width:700px}
-main>section:not(.hero){max-width:1120px}
-.card{background:#232221;border-color:#665445}.featured{background:#2b251f}
-@media(max-width:900px){nav{gap:16px;font-size:13px}header{padding-inline:20px}.hero{min-height:680px}}
-@media(max-width:650px){header{min-height:72px;padding:12px 17px}.logo{font-size:19px}.logo-icon{font-size:24px}.logo small{font-size:8px}nav{display:none}.nav-cta{padding:11px 13px}.hero{min-height:690px;padding:90px 22px 85px}.hero:before{background-size:cover;background-position:57% center}.hero:after{background:linear-gradient(180deg,rgba(32,25,23,.3),rgba(32,24,22,.58) 52%,rgba(32,24,22,.65))}.hero h1{font-size:clamp(37px,10vw,53px);line-height:1.55}.hero p{font-size:16px;line-height:1.9}.hero-notes{gap:12px;font-size:12px}.hero-actions{gap:10px}.hero-actions .button{min-width:140px;font-size:14px;padding:13px 15px}}
+    .hero{max-width:none;min-height:min(750px,calc(100svh - 86px));padding:105px max(30px,calc((100vw - 1200px)/2)) 95px;position:relative;isolation:isolate;background:#b99b7d;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+    .hero:before{content:"";position:absolute;inset:0;z-index:-2;background-image:url('./hero-watercolor.jpg');background-size:100% auto;background-position:center center;background-repeat:no-repeat;filter:saturate(.94)}
+    .hero:after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(28,24,23,.16),rgba(37,28,25,.19) 45%,rgba(30,23,22,.55)),radial-gradient(ellipse at 50% 48%,rgba(37,27,26,.63),rgba(41,29,26,.25) 58%,rgba(39,28,24,.08) 90%)}
+    .hero-content{position:relative;z-index:1;max-width:850px;display:flex;flex-direction:column;align-items:center}.hero .eyebrow{background:rgba(31,25,23,.58);padding:10px 20px;border:1px solid rgba(255,235,201,.36);border-radius:30px;font-size:14px;color:#ffe4b7;backdrop-filter:blur(6px)}
+    .hero h1{max-width:950px;color:#fff7eb;text-shadow:0 4px 22px rgba(25,20,20,.75);font-weight:800}.hero .gold{color:var(--gold2)}.hero p{font-size:clamp(16px,1.5vw,21px);line-height:2;max-width:680px;color:#fff5e8;text-shadow:0 2px 12px #241b19}
+    .hero-actions{display:flex;justify-content:center;gap:15px;flex-wrap:wrap;margin:25px 0 28px}.hero-actions .button{min-width:180px;padding:16px 24px;font-size:16px;box-shadow:0 7px 28px #1d17174d}
+    .hero-notes{display:flex;gap:25px;flex-wrap:wrap;justify-content:center;font-size:13px;color:#ffeed8;text-shadow:0 2px 9px #171211}.scroll-hint{position:absolute;bottom:26px;font-size:13px;color:#ffead1;text-shadow:0 2px 8px #171211}
 
-/* Full fidelity desktop reference: original PNG at intrinsic aspect ratio, no crop, compression or zoom. */
-.reference-hero{display:block;position:relative;width:100%;background:#e6c4a0;line-height:0;overflow:hidden}
-.reference-hero img{display:block;width:100%;height:auto;object-fit:contain}
-.hero-hit{position:absolute;display:block;z-index:3;border-radius:12px;cursor:pointer}
-.hero-hit:focus-visible{outline:3px solid #53371d;outline-offset:3px;background:#ffdb8633}
-.hit-logo{left:74%;top:2%;width:17%;height:13%}.hit-home{left:62%;top:4%;width:7%;height:6%}
-.hit-work{left:55%;top:4%;width:6%;height:6%}.hit-price{left:49%;top:4%;width:6%;height:6%}
-.hit-how{left:40%;top:4%;width:8%;height:6%}.hit-contact{left:29%;top:4%;width:10%;height:6%}
-.hit-order-top{left:12%;top:3%;width:12%;height:8%}.hit-order-main{left:50%;top:57%;width:15%;height:8%}
-.hit-watch{left:37%;top:57%;width:13%;height:8%}.hit-more{left:45%;top:89%;width:10%;height:8%}
-.reference-hero+header,.reference-hero~main>.hero{display:none}
-@media(max-width:700px){.reference-hero{display:none}.reference-hero+header,.reference-hero~main>.hero{display:flex}}
-</style></head><body><div class="reference-hero" id="home" aria-label="قلم موشن — حوّل قصتك إلى عالم ينبض بالحياة"><img src="./hero-original-full-quality.png" alt="قلم موشن: مدينة ساحلية مرسومة بالألوان المائية وقت الغروب، حوّل قصتك إلى عالم ينبض بالحياة" fetchpriority="high"><a class="hero-hit hit-logo" href="#home" aria-label="قلم موشن — الرئيسية"></a><a class="hero-hit hit-home" href="#home" aria-label="الرئيسية"></a><a class="hero-hit hit-work" href="#work" aria-label="أعمالنا"></a><a class="hero-hit hit-price" href="#pricing" aria-label="الباقات"></a><a class="hero-hit hit-how" href="#order" aria-label="كيف نعمل؟"></a><a class="hero-hit hit-contact" href="#order" aria-label="تواصل معنا"></a><a class="hero-hit hit-order-top" href="#order" aria-label="اطلب فيديو الآن"></a><a class="hero-hit hit-order-main" href="#order" aria-label="اطلب فيديو الآن"></a><a class="hero-hit hit-watch" href="#work" aria-label="شاهد أعمالنا"></a><a class="hero-hit hit-more" href="#work" aria-label="اكتشف المزيد"></a></div><header><a href="#home" class="logo"><span class="logo-icon" aria-hidden="true">✒</span><span><strong>قلم موشن</strong><small>QALAM MOTION</small></span></a><nav aria-label="التنقل الرئيسي"><a href="#home">الرئيسية</a><a href="#work">أعمالنا</a><a href="#pricing">الباقات</a><a href="#order">اطلب فيديو</a></nav><a class="button nav-cta" href="#order">ابدأ الآن ←</a></header><main><section class="hero" id="home"><div class="hero-content"><div class="eyebrow">✦ حكايات تُرسم... فتترك أثراً</div><h1>حوّل قصتك<br>إلى عالم <span class="gold">ينبض بالحياة</span></h1><p class="muted">نحوّل أفكارك وقصصك إلى فيديوهات مرسومة باليد، بألوان مائية هادئة وحركة سينمائية تُشعرك بكل تفصيلة.</p><div class="hero-actions"><a class="button" href="#order">اطلب فيديو الآن <span aria-hidden="true">↗</span></a><a class="button button-outline" href="#work">شاهد أعمالنا <span aria-hidden="true">◁</span></a></div><div class="hero-notes"><span>✧ رسومات يدوية فريدة</span><span>♡ قصص ذات معنى</span><span>✦ أسلوب سينمائي</span></div></div><a class="scroll-hint" href="#work">اكتشف المزيد ↓</a></section><section id="work" class="work-section"><div class="eyebrow">أسلوبنا المميز</div><h2>رسومات تحكي.<br><span class="gold">وحركة تُشعرك بالقصة.</span></h2><p class="muted">نماذج أعمالنا قريباً — أضف فيديوهاتك الحقيقية هنا قبل إطلاق الموقع.</p></section><section id="pricing"><h2>اختر الباقة المناسبة</h2><div class="grid"><article class="card"><h3>قصة قصيرة</h3><div class="price">$29</div><p class="muted">حتى 20 ثانية • عمودي 9:16 • تعديل واحد</p><a href="#order" class="button" data-plan="short">اختر الباقة</a></article><article class="card featured"><h3>ريل مميز</h3><div class="price">$59</div><p class="muted">حتى 45 ثانية • عمودي 9:16 • تعديل واحد</p><a href="#order" class="button" data-plan="signature">اختر الباقة</a></article></div><p class="muted">الأسعار تجريبية وقابلة للتغيير قبل الإطلاق. تُحدَّد مدة التسليم وشروط الخدمة قبل قبول الطلبات.</p></section><section id="order" class="formgrid"><div><div class="eyebrow">ابدأ مشروعك</div><h2>احكِ لنا <span class="gold">قصتك.</span></h2><p class="muted">اكتب فكرتك، واختر الباقة، ثم أكمل الدفع عبر باي بال. سنراجع طلبك وننفّذ الفيديو.</p><p id="mode" class="gold"></p><p class="muted">هذا إصدار تجريبي: مدفوعات باي بال هنا وهمية ولا تُخصم أموال حقيقية.</p></div><form id="checkout" class="card"><label for="name">الاسم</label><input id="name" required minlength="2" maxlength="100"><label for="email">البريد الإلكتروني</label><input id="email" type="email" required><label for="package">الباقة</label><select id="package"><option value="short">قصة قصيرة — $29</option><option value="signature">ريل مميز — $59</option></select><label for="brief">تفاصيل القصة أو الفيديو</label><textarea id="brief" required minlength="15" maxlength="4000" placeholder="اكتب قصتك، وأسلوب الرسم الذي تفضله، والجمهور المستهدف، وأي تفاصيل مهمة..."></textarea><p class="muted">تُدخل بيانات الدفع على موقع باي بال فقط، وليس على موقعنا.</p><button class="button" id="pay" type="submit">المتابعة إلى باي بال</button><div id="message" role="status" aria-live="polite"></div></form></section></main><footer>© 2026 قلم موشن • نسخة تجريبية</footer><script>
-const $=id=>document.getElementById(id);document.querySelectorAll('[data-plan]').forEach(a=>a.onclick=()=>{$('package').value=a.dataset.plan});fetch('/api/config').then(r=>r.json()).then(c=>{$('mode').textContent=c.mode==='sandbox'?'وضع التجربة — مدفوعات وهمية':'وضع الدفع الحقيقي';if(!c.configured)$('message').textContent='أضف بيانات اختبار باي بال في ملف .env لتفعيل الدفع التجريبي.'}).catch(()=>{$('message').textContent='شغّل خادم Node لتفعيل الدفع.'});$('checkout').onsubmit=async e=>{e.preventDefault();$('pay').disabled=true;$('message').textContent='جارٍ تجهيز صفحة الدفع الآمنة…';try{const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('name').value,email:$('email').value,packageId:$('package').value,brief:$('brief').value})});const j=await r.json();if(!r.ok)throw Error(j.error||'تعذّر بدء الدفع');sessionStorage.setItem('qalam_order',j.paypalOrderId);location.assign(j.approvalUrl)}catch(e){$('message').textContent=e.message;$('pay').disabled=false}};const q=new URLSearchParams(location.search);if(q.get('payment')==='cancel')$('message').textContent='تم إلغاء الدفع.';if(q.get('payment')==='return'){const token=q.get('token');if(!token||token!==sessionStorage.getItem('qalam_order'))$('message').textContent='حدث اختلاف في رقم الطلب. تواصل مع الدعم قبل إعادة المحاولة.';else{history.replaceState({},'',location.pathname+'#order');$('message').textContent='جارٍ التحقق من الدفع عبر باي بال…';fetch('/api/orders/'+encodeURIComponent(token)+'/capture',{method:'POST'}).then(async r=>{const j=await r.json();if(!r.ok)throw Error(j.error);sessionStorage.removeItem('qalam_order');$('message').textContent='تم تأكيد الدفع! رقم الطلب: '+j.orderId}).catch(e=>{$('message').textContent=e.message})}}
-</script></body></html>
+    .reference-hero{display:block;position:relative;width:100%;background:#e6c4a0;line-height:0;overflow:hidden}.reference-hero img{display:block;width:100%;height:auto;object-fit:contain}
+    .hero-hit{position:absolute;display:block;z-index:3;border-radius:12px;cursor:pointer}.hero-hit:focus-visible{outline:3px solid #53371d;outline-offset:3px;background:#ffdb8633}
+    .hit-logo{left:74%;top:2%;width:17%;height:13%}.hit-home{left:62%;top:4%;width:7%;height:6%}.hit-work{left:55%;top:4%;width:6%;height:6%}.hit-price{left:49%;top:4%;width:6%;height:6%}.hit-how{left:40%;top:4%;width:8%;height:6%}.hit-contact{left:29%;top:4%;width:10%;height:6%}.hit-order-top{left:12%;top:3%;width:12%;height:8%}.hit-order-main{left:50%;top:57%;width:15%;height:8%}.hit-watch{left:37%;top:57%;width:13%;height:8%}.hit-more{left:45%;top:89%;width:10%;height:8%}
+    .reference-hero+header,.reference-hero~main>.hero{display:none}
+
+    .work-gallery{grid-template-columns:1.1fr .9fr}.preview{min-height:250px;background:linear-gradient(145deg,#302924,#171819);position:relative;overflow:hidden}.preview:before{content:"";position:absolute;inset:22px;border:1px solid rgba(233,195,139,.22);border-radius:12px}.preview-scene{position:absolute;inset:auto 28px 28px 28px;height:125px;background:linear-gradient(180deg,#d9b17d,#8f6040 70%,#4b3328);border-radius:12px;box-shadow:0 15px 50px #0008}.preview-sun{position:absolute;left:60px;top:45px;width:58px;height:58px;border-radius:50%;background:#f2cf8f;box-shadow:0 0 46px #f2cf8f99}.preview-line{position:absolute;right:45px;top:58px;width:42%;height:8px;border-radius:20px;background:#f5e4c7cc;box-shadow:0 24px 0 #f5e4c799,0 48px 0 #f5e4c766}
+    .steps{counter-reset:step}.steps .card{position:relative;padding-top:52px}.steps .card:before{counter-increment:step;content:counter(step);position:absolute;top:18px;right:22px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--gold);color:#171411;font-weight:800}
+    .formgrid{display:grid;grid-template-columns:1fr 1.2fr;gap:35px;margin:0}.form-note{display:none;border:1px solid rgba(233,195,139,.35);background:rgba(233,195,139,.08);border-radius:12px;padding:14px 16px;color:#f2cd95;line-height:1.7}
+    label{display:block;margin:17px 0 7px}input,select,textarea{width:100%;padding:14px;border-radius:10px;background:#111316;color:white;border:1px solid #686159;font:inherit}input[type=email]{direction:ltr;text-align:right}textarea{min-height:140px;resize:vertical}#message{color:#f2cd95;line-height:1.6;margin-top:15px}.small{font-size:13px}.footer-links{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px}.footer-links a{color:#d7bd8f}
+
+    @media(max-width:900px){nav{gap:16px;font-size:13px}header{padding-inline:20px}.hero{min-height:680px}.grid.three,.work-gallery{grid-template-columns:1fr}}
+    @media(max-width:700px){.reference-hero{display:none}.reference-hero+header,.reference-hero~main>.hero{display:flex}.grid,.formgrid{grid-template-columns:1fr}main>section:not(.hero){padding-block:54px}header{min-height:72px;padding:12px 17px}.logo{font-size:19px}.logo-icon{font-size:24px}.logo small{font-size:8px}nav{display:none}.nav-cta{padding:11px 13px}.hero{min-height:690px;padding:90px 22px 85px}.hero:before{background-size:cover;background-position:57% center}.hero:after{background:linear-gradient(180deg,rgba(32,25,23,.3),rgba(32,24,22,.58) 52%,rgba(32,24,22,.65))}.hero h1{font-size:clamp(37px,10vw,53px);line-height:1.55}.hero p{font-size:16px;line-height:1.9}.hero-notes{gap:12px;font-size:12px}.hero-actions{gap:10px}.hero-actions .button{min-width:140px;font-size:14px;padding:13px 15px}.price{font-size:42px}}
+  </style>
+</head>
+<body>
+  <div class="reference-hero" id="home" aria-label="قلم موشن - حول قصتك إلى عالم ينبض بالحياة">
+    <img src="./hero-original-full-quality.png" alt="قلم موشن: مدينة ساحلية مرسومة بالألوان المائية وقت الغروب، حول قصتك إلى عالم ينبض بالحياة" fetchpriority="high">
+    <a class="hero-hit hit-logo" href="#home" aria-label="قلم موشن - الرئيسية"></a>
+    <a class="hero-hit hit-home" href="#home" aria-label="الرئيسية"></a>
+    <a class="hero-hit hit-work" href="#work" aria-label="أعمالنا"></a>
+    <a class="hero-hit hit-price" href="#pricing" aria-label="الباقات"></a>
+    <a class="hero-hit hit-how" href="#process" aria-label="كيف نعمل؟"></a>
+    <a class="hero-hit hit-contact" href="#order" aria-label="تواصل معنا"></a>
+    <a class="hero-hit hit-order-top" href="#order" aria-label="اطلب فيديو الآن"></a>
+    <a class="hero-hit hit-order-main" href="#order" aria-label="اطلب فيديو الآن"></a>
+    <a class="hero-hit hit-watch" href="#work" aria-label="شاهد أعمالنا"></a>
+    <a class="hero-hit hit-more" href="#work" aria-label="اكتشف المزيد"></a>
+  </div>
+
+  <header>
+    <a href="#home" class="logo"><span class="logo-icon" aria-hidden="true">✒</span><span><strong>قلم موشن</strong><small>QALAM MOTION</small></span></a>
+    <nav aria-label="التنقل الرئيسي">
+      <a href="#home">الرئيسية</a>
+      <a href="#work">أعمالنا</a>
+      <a href="#pricing">الباقات</a>
+      <a href="#process">كيف نعمل؟</a>
+      <a href="#order">اطلب فيديو</a>
+    </nav>
+    <a class="button nav-cta" href="#order">ابدأ الآن ←</a>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <div class="eyebrow">✦ حكايات ترسم... فتترك أثرا</div>
+        <h1>حول قصتك<br>إلى عالم <span class="gold">ينبض بالحياة</span></h1>
+        <p class="muted">نحول أفكارك وقصصك إلى فيديوهات مرسومة باليد، بألوان مائية هادئة وحركة سينمائية تشعرك بكل تفصيلة.</p>
+        <div class="hero-actions">
+          <a class="button" href="#order">اطلب فيديو الآن <span aria-hidden="true">↗</span></a>
+          <a class="button button-outline" href="#work">شاهد أعمالنا <span aria-hidden="true">◁</span></a>
+        </div>
+        <div class="hero-notes"><span>✧ رسومات يدوية فريدة</span><span>♡ قصص ذات معنى</span><span>✦ أسلوب سينمائي</span></div>
+      </div>
+      <a class="scroll-hint" href="#work">اكتشف المزيد ↓</a>
+    </section>
+
+    <section id="work">
+      <div class="section-head">
+        <div class="eyebrow">أسلوبنا المميز</div>
+        <h2>رسومات تحكي.<br><span class="gold">وحركة تشعرك بالقصة.</span></h2>
+        <p class="muted">نصمم فيديوهات قصيرة تصلح لريلز، تيك توك، وفيسبوك: قصة واضحة، لقطات مرسومة، إيقاع هادئ، وتسليم جاهز للنشر.</p>
+      </div>
+      <div class="grid work-gallery">
+        <article class="card preview" aria-label="مشهد مرسوم بالألوان المائية"><div class="preview-sun"></div><div class="preview-line"></div><div class="preview-scene"></div></article>
+        <article class="card">
+          <h3>ماذا يمكننا أن نصنع؟</h3>
+          <ul class="mini-list">
+            <li>فيديوهات قصصية مرسومة بأسلوب ورقي دافئ.</li>
+            <li>ريلز قصيرة لشرح فكرة، آية، قصة، منتج، أو رسالة إنسانية.</li>
+            <li>نسخة عمودية 9:16 جاهزة للنشر مع نصوص واضحة.</li>
+            <li>تعديل واحد بعد التسليم حتى تضبط النتيجة النهائية.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="section-head center">
+        <div class="eyebrow">الباقات</div>
+        <h2>اختر الباقة المناسبة</h2>
+        <p class="muted">ابدأ بطلب بسيط، واكتب الفكرة بوضوح. بعد الدفع، يبقى الطلب محفوظا في لوحة الإدارة حتى تتم مراجعته وتنفيذه.</p>
+      </div>
+      <div class="grid">
+        <article class="card">
+          <h3>قصة قصيرة</h3>
+          <div class="price">$29</div>
+          <p class="muted">حتى 20 ثانية • عمودي 9:16 • تعديل واحد</p>
+          <a href="#order" class="button" data-plan="short">اختر الباقة</a>
+        </article>
+        <article class="card featured">
+          <h3>ريل مميز</h3>
+          <div class="price">$59</div>
+          <p class="muted">حتى 45 ثانية • عمودي 9:16 • تعديل واحد</p>
+          <a href="#order" class="button" data-plan="signature">اختر الباقة</a>
+        </article>
+      </div>
+    </section>
+
+    <section id="process">
+      <div class="section-head center">
+        <div class="eyebrow">كيف نعمل؟</div>
+        <h2>من الفكرة إلى فيديو جاهز</h2>
+      </div>
+      <div class="grid three steps">
+        <article class="card"><h3>اكتب الفكرة</h3><p class="muted">صف القصة، الجمهور، اللغة، وأي تفاصيل ضرورية للفيديو.</p></article>
+        <article class="card"><h3>أكمل الدفع</h3><p class="muted">الدفع يتم عبر باي بال فقط، ونحن لا نحفظ بيانات البطاقة.</p></article>
+        <article class="card"><h3>نبدأ التنفيذ</h3><p class="muted">نراجع الطلب، نجهز المشاهد، ثم نسلم النسخة النهائية حسب الباقة.</p></article>
+      </div>
+    </section>
+
+    <section id="order">
+      <div class="formgrid">
+        <div>
+          <div class="eyebrow">ابدأ مشروعك</div>
+          <h2>احك لنا <span class="gold">قصتك.</span></h2>
+          <p class="muted">اكتب فكرتك، واختر الباقة، ثم أكمل الدفع عبر باي بال. بعد تأكيد الدفع سيظهر لك رقم الطلب، وسنستخدم معلومات التواصل لمتابعة التنفيذ.</p>
+          <p id="mode" class="form-note"></p>
+        </div>
+        <form id="checkout" class="card">
+          <label for="name">الاسم</label>
+          <input id="name" autocomplete="name" required minlength="2" maxlength="100">
+          <label for="email">البريد الإلكتروني</label>
+          <input id="email" type="email" autocomplete="email" required maxlength="254">
+          <label for="contact">واتساب أو إنستغرام (اختياري)</label>
+          <input id="contact" maxlength="120" placeholder="مثال: +212... أو @username">
+          <label for="package">الباقة</label>
+          <select id="package">
+            <option value="short">قصة قصيرة - $29</option>
+            <option value="signature">ريل مميز - $59</option>
+          </select>
+          <label for="brief">تفاصيل القصة أو الفيديو</label>
+          <textarea id="brief" required minlength="15" maxlength="4000" placeholder="اكتب القصة، أسلوب الرسم، الجمهور المستهدف، اللغة المطلوبة، وأي تفاصيل مهمة..."></textarea>
+          <p class="muted small">تدخل بيانات الدفع على موقع باي بال فقط، وليس على موقعنا.</p>
+          <button class="button" id="pay" type="submit">المتابعة إلى باي بال</button>
+          <div id="message" role="status" aria-live="polite"></div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    © 2026 قلم موشن • فيديوهات مرسومة باليد وجاهزة للنشر
+    <div class="footer-links"><a href="/admin.html">لوحة الطلبات</a><a href="#order">اطلب فيديو</a></div>
+  </footer>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const message = $('message');
+    const modeNote = $('mode');
+
+    document.querySelectorAll('[data-plan]').forEach(link => {
+      link.addEventListener('click', () => {
+        $('package').value = link.dataset.plan;
+      });
+    });
+
+    fetch('/api/config')
+      .then(response => response.json())
+      .then(config => {
+        modeNote.style.display = 'block';
+        modeNote.textContent = config.mode === 'sandbox'
+          ? 'وضع التجربة مفعل: الدفع يتم عبر باي بال Sandbox ولا يخصم أموالا حقيقية.'
+          : 'وضع الدفع الحقيقي مفعل: تأكد من تفاصيل الطلب قبل المتابعة.';
+        if (!config.configured) message.textContent = 'أضف بيانات باي بال في متغيرات البيئة لتفعيل الدفع.';
+      })
+      .catch(() => {
+        message.textContent = 'شغل خادم Node لتفعيل الدفع والطلبات.';
+      });
+
+    $('checkout').addEventListener('submit', async event => {
+      event.preventDefault();
+      $('pay').disabled = true;
+      message.textContent = 'جار تجهيز صفحة الدفع الآمنة...';
+      try {
+        const response = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: $('name').value,
+            email: $('email').value,
+            contact: $('contact').value,
+            packageId: $('package').value,
+            brief: $('brief').value
+          })
+        });
+        const json = await response.json();
+        if (!response.ok) throw Error(json.error || 'تعذر بدء الدفع');
+        sessionStorage.setItem('qalam_order', json.paypalOrderId);
+        location.assign(json.approvalUrl);
+      } catch (error) {
+        message.textContent = error.message;
+        $('pay').disabled = false;
+      }
+    });
+
+    const params = new URLSearchParams(location.search);
+    if (params.get('payment') === 'cancel') message.textContent = 'تم إلغاء الدفع.';
+    if (params.get('payment') === 'return') {
+      const token = params.get('token');
+      if (!token || token !== sessionStorage.getItem('qalam_order')) {
+        message.textContent = 'حدث اختلاف في رقم الطلب. تواصل معنا قبل إعادة المحاولة.';
+      } else {
+        history.replaceState({}, '', `${location.pathname}#order`);
+        message.textContent = 'جار التحقق من الدفع عبر باي بال...';
+        fetch(`/api/orders/${encodeURIComponent(token)}/capture`, { method: 'POST' })
+          .then(async response => {
+            const json = await response.json();
+            if (!response.ok) throw Error(json.error);
+            sessionStorage.removeItem('qalam_order');
+            message.textContent = `تم تأكيد الدفع! رقم الطلب: ${json.orderId}`;
+          })
+          .catch(error => {
+            message.textContent = error.message;
+          });
+      }
+    }
+  </script>
+</body>
+</html>
