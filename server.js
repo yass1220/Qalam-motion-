@@ -23,6 +23,8 @@ app.use(express.static('public'));
 const mode = process.env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox';
 const paypalBase = mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 const publicBaseUrl = (process.env.PUBLIC_BASE_URL || 'http://localhost:3000').replace(/\/+$/, '');
+const paypalWebhookPath = '/api/paypal/webhook';
+const paypalWebhookUrl = `${publicBaseUrl}${paypalWebhookPath}`;
 const catalog = {
   short: { name: 'Short Story', price: '29.00', duration: 'Up to 20 seconds' },
   signature: { name: 'Signature Reel', price: '59.00', duration: 'Up to 45 seconds' }
@@ -31,6 +33,7 @@ const fulfillmentStatuses = new Set(['NEW', 'IN_PROGRESS', 'WAITING_CUSTOMER', '
 const adminSessionCookie = 'qm_admin';
 const adminSessionTtlMs = 8 * 60 * 60 * 1000;
 const supportEmail = clean(process.env.SUPPORT_EMAIL || process.env.ADMIN_EMAIL, 254);
+const paypalWebhookSettingKey = 'paypalWebhookId';
 
 function fail(res, status, message) {
   return res.status(status).json({ error: message });
@@ -199,6 +202,13 @@ function createPostgresStore() {
         created_at timestamptz not null default now()
       )
     `);
+    await pool.query(`
+      create table if not exists settings (
+        key text primary key,
+        value text not null,
+        updated_at timestamptz not null default now()
+      )
+    `);
     await pool.query("alter table orders add column if not exists fulfillment_status text not null default 'NEW'");
     await pool.query("alter table orders add column if not exists admin_notes text not null default ''");
     await pool.query('create index if not exists orders_status_created_idx on orders (status, created_at desc)');
@@ -308,6 +318,18 @@ function createPostgresStore() {
     },
     async health() {
       await pool.query('select 1');
+    },
+    async getSetting(key) {
+      const result = await pool.query('select value from settings where key=$1 limit 1', [key]);
+      return result.rows[0]?.value || '';
+    },
+    async setSetting(key, value) {
+      await pool.query(
+        `insert into settings (key, value, updated_at)
+         values ($1, $2, now())
+         on conflict (key) do update set value=excluded.value, updated_at=now()`,
+        [key, value]
+      );
     }
   };
 }
@@ -315,7 +337,9 @@ function createPostgresStore() {
 function createJsonStore() {
   const dataDir = path.resolve(process.env.DATA_DIR || './data');
   const file = path.join(dataDir, 'orders.json');
+  const settingsFile = path.join(dataDir, 'settings.json');
   let orders = [];
+  let settings = {};
   let writeQueue = Promise.resolve();
 
   async function persist() {
@@ -327,6 +351,15 @@ function createJsonStore() {
     return writeQueue;
   }
 
+  async function persistSettings() {
+    writeQueue = writeQueue.then(async () => {
+      const tmp = `${settingsFile}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(settings, null, 2), { mode: 0o600 });
+      await fs.rename(tmp, settingsFile);
+    });
+    return writeQueue;
+  }
+
   return {
     type: 'json',
     async init() {
@@ -334,6 +367,12 @@ function createJsonStore() {
       try {
         const parsed = JSON.parse(await fs.readFile(file, 'utf8'));
         orders = Array.isArray(parsed) ? parsed.map(normalizeOrder) : [];
+      } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+      }
+      try {
+        const parsedSettings = JSON.parse(await fs.readFile(settingsFile, 'utf8'));
+        settings = parsedSettings && typeof parsedSettings === 'object' && !Array.isArray(parsedSettings) ? parsedSettings : {};
       } catch (error) {
         if (error.code !== 'ENOENT') throw error;
       }
@@ -378,12 +417,24 @@ function createJsonStore() {
     },
     async health() {
       return true;
+    },
+    async getSetting(key) {
+      return settings[key] || '';
+    },
+    async setSetting(key, value) {
+      settings[key] = value;
+      await persistSettings();
     }
   };
 }
 
 const store = createStore();
 await store.init();
+ensurePayPalWebhook()
+  .then(webhookId => {
+    if (webhookId) console.log(`PayPal webhook ready at ${paypalWebhookPath}`);
+  })
+  .catch(error => console.warn(`PayPal webhook setup skipped: ${error.message}`));
 
 async function accessToken() {
   const id = process.env.PAYPAL_CLIENT_ID;
@@ -519,6 +570,42 @@ async function notifyPaidOrder(order) {
   await Promise.all(tasks);
 }
 
+async function configuredPayPalWebhookId() {
+  return clean(process.env.PAYPAL_WEBHOOK_ID || await store.getSetting(paypalWebhookSettingKey), 120);
+}
+
+async function webhookStatus() {
+  return {
+    configured: Boolean(await configuredPayPalWebhookId()),
+    url: paypalWebhookUrl
+  };
+}
+
+function paypalCredentialsConfigured() {
+  return Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET && !process.env.PAYPAL_CLIENT_ID.startsWith('replace_'));
+}
+
+async function ensurePayPalWebhook() {
+  if (process.env.PAYPAL_WEBHOOK_ID) return clean(process.env.PAYPAL_WEBHOOK_ID, 120);
+  const saved = await store.getSetting(paypalWebhookSettingKey);
+  if (saved) return saved;
+  if (!paypalCredentialsConfigured()) return '';
+
+  const listed = await paypal('/v1/notifications/webhooks', 'GET');
+  const existing = listed.webhooks?.find(item => item.url === paypalWebhookUrl);
+  const webhook = existing || await paypal('/v1/notifications/webhooks', 'POST', {
+    url: paypalWebhookUrl,
+    event_types: [
+      { name: 'PAYMENT.CAPTURE.COMPLETED' }
+    ]
+  });
+
+  const webhookId = clean(webhook?.id, 120);
+  if (!webhookId) throw Error('PayPal webhook setup did not return a webhook ID');
+  await store.setSetting(paypalWebhookSettingKey, webhookId);
+  return webhookId;
+}
+
 function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -539,13 +626,14 @@ function webhookHeaders(req) {
 }
 
 async function paypalWebhookVerified(req) {
-  if (!process.env.PAYPAL_WEBHOOK_ID) return false;
+  const webhookId = await configuredPayPalWebhookId();
+  if (!webhookId) return false;
   const headers = webhookHeaders(req);
   if (Object.values(headers).some(value => !value)) return false;
 
   const result = await paypal('/v1/notifications/verify-webhook-signature', 'POST', {
     ...headers,
-    webhook_id: process.env.PAYPAL_WEBHOOK_ID,
+    webhook_id: webhookId,
     webhook_event: req.body
   });
   return result.verification_status === 'SUCCESS';
@@ -688,11 +776,11 @@ app.post('/api/orders/:paypalOrderId/capture', async (req, res) => {
 });
 
 app.post('/api/paypal/webhook', async (req, res) => {
-  if (!process.env.PAYPAL_WEBHOOK_ID) {
-    return fail(res, 503, 'PayPal webhook is not configured');
-  }
-
   try {
+    if (!(await configuredPayPalWebhookId())) {
+      return fail(res, 503, 'PayPal webhook is not configured');
+    }
+
     if (!await paypalWebhookVerified(req)) {
       return fail(res, 400, 'Webhook signature verification failed');
     }
@@ -763,29 +851,45 @@ app.get('/api/admin/orders', async (req, res) => {
   res.set('Cache-Control', 'no-store').json(orders.map(adminOrder));
 });
 
-app.get('/api/admin/session', (req, res) => {
-  if (!adminAuthorized(req)) return fail(res, 401, 'Unauthorized');
-  res.set('Cache-Control', 'no-store').json({
+async function adminSessionPayload() {
+  return {
     authenticated: true,
     emailConfigured: emailsConfigured(),
-    webhookConfigured: Boolean(process.env.PAYPAL_WEBHOOK_ID)
-  });
+    webhookConfigured: (await webhookStatus()).configured
+  };
+}
+
+app.get('/api/admin/session', async (req, res) => {
+  if (!adminAuthorized(req)) return fail(res, 401, 'Unauthorized');
+  res.set('Cache-Control', 'no-store').json(await adminSessionPayload());
 });
 
-app.post('/api/admin/login', (req, res) => {
+app.post('/api/admin/login', async (req, res) => {
   const token = clean(req.body?.token, 500);
   if (!adminTokenMatches(token)) return fail(res, 401, 'Unauthorized');
   setAdminSession(res);
-  res.set('Cache-Control', 'no-store').json({
-    authenticated: true,
-    emailConfigured: emailsConfigured(),
-    webhookConfigured: Boolean(process.env.PAYPAL_WEBHOOK_ID)
-  });
+  res.set('Cache-Control', 'no-store').json(await adminSessionPayload());
 });
 
 app.post('/api/admin/logout', (req, res) => {
   clearAdminSession(res);
   res.set('Cache-Control', 'no-store').json({ ok: true });
+});
+
+app.post('/api/admin/paypal-webhook/setup', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+
+  try {
+    const webhookId = await ensurePayPalWebhook();
+    if (!webhookId) return fail(res, 503, 'PayPal credentials are not configured');
+    res.set('Cache-Control', 'no-store').json({
+      webhookConfigured: true,
+      webhookUrl: paypalWebhookUrl
+    });
+  } catch (error) {
+    console.error(error);
+    fail(res, 502, 'Could not configure PayPal webhook');
+  }
 });
 
 app.patch('/api/admin/orders/:id', async (req, res) => {
