@@ -30,6 +30,7 @@ const catalog = {
 const fulfillmentStatuses = new Set(['NEW', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'DELIVERED', 'CANCELLED']);
 const adminSessionCookie = 'qm_admin';
 const adminSessionTtlMs = 8 * 60 * 60 * 1000;
+const supportEmail = clean(process.env.SUPPORT_EMAIL || process.env.ADMIN_EMAIL, 254);
 
 function fail(res, status, message) {
   return res.status(status).json({ error: message });
@@ -259,6 +260,7 @@ function createPostgresStore() {
         const existing = rowToOrder(current.rows[0]);
         if (existing.status === 'PAID' && existing.captureId === capture.id) {
           await client.query('commit');
+          existing.paymentCompletedNow = false;
           return existing;
         }
         if (existing.status === 'PAID' && existing.captureId && existing.captureId !== capture.id) {
@@ -278,7 +280,9 @@ function createPostgresStore() {
           [orderId, capture.id]
         );
         await client.query('commit');
-        return rowToOrder(result.rows[0]);
+        const order = rowToOrder(result.rows[0]);
+        order.paymentCompletedNow = existing.status !== 'PAID';
+        return order;
       } catch (error) {
         await client.query('rollback').catch(() => {});
         throw error;
@@ -347,6 +351,7 @@ function createJsonStore() {
     async markPaid(orderId, capture) {
       const order = orders.find(item => item.id === orderId);
       if (!order) return null;
+      const wasAlreadyPaid = order.status === 'PAID';
       if (order.status === 'PAID' && order.captureId && order.captureId !== capture.id) {
         throw Error('Order is already paid with a different capture ID');
       }
@@ -355,7 +360,9 @@ function createJsonStore() {
       order.paidAt = order.paidAt || new Date().toISOString();
       order.updatedAt = new Date().toISOString();
       await persist();
-      return normalizeOrder(order);
+      const paidOrder = normalizeOrder(order);
+      paidOrder.paymentCompletedNow = !wasAlreadyPaid;
+      return paidOrder;
     },
     async updateManagement(orderId, updates) {
       const order = orders.find(item => item.id === orderId);
@@ -397,19 +404,175 @@ async function accessToken() {
 
 async function paypal(pathname, method, body, requestId) {
   const token = await accessToken();
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json'
+  };
+  if (requestId) headers['PayPal-Request-Id'] = requestId;
   const response = await fetch(`${paypalBase}${pathname}`, {
     method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      'PayPal-Request-Id': requestId
-    },
+    headers,
     ...(body ? { body: JSON.stringify(body) } : {})
   });
   const json = await response.json().catch(() => ({}));
   if (!response.ok) throw Error(`PayPal ${method} failed (${response.status}): ${json.name || 'unknown error'}`);
   return json;
+}
+
+function emailsConfigured() {
+  return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_FROM);
+}
+
+async function sendEmail({ to, subject, text, html, replyTo }) {
+  if (!emailsConfigured() || !validEmail(to)) return false;
+
+  const payload = {
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    text,
+    html
+  };
+  if (replyTo && validEmail(replyTo)) payload.reply_to = replyTo;
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw Error(`Email send failed (${response.status}): ${body.slice(0, 200)}`);
+  }
+  return true;
+}
+
+function orderUrl(order) {
+  return `${publicBaseUrl}/status.html`;
+}
+
+function orderSummary(order) {
+  return [
+    `Order ID: ${order.id}`,
+    `Package: ${order.packageId}`,
+    `Amount: ${order.amount} ${order.currency || 'USD'}`,
+    `Customer: ${order.name}`,
+    `Email: ${order.email}`,
+    order.contact ? `Contact: ${order.contact}` : '',
+    '',
+    'Brief:',
+    order.brief
+  ].filter(Boolean).join('\n');
+}
+
+async function notifyPaidOrder(order) {
+  const tasks = [];
+  const trackUrl = orderUrl(order);
+
+  tasks.push(sendEmail({
+    to: order.email,
+    subject: 'تم تأكيد طلبك في قلم موشن',
+    replyTo: supportEmail,
+    text: [
+      `مرحبا ${order.name},`,
+      '',
+      'تم تأكيد الدفع بنجاح، ووصل طلبك إلى قلم موشن.',
+      `رقم الطلب: ${order.id}`,
+      `تتبع الطلب: ${trackUrl}`,
+      '',
+      'سنراجع التفاصيل ونتواصل معك إذا احتجنا أي معلومات إضافية.',
+      supportEmail ? `للمساعدة: ${supportEmail}` : ''
+    ].filter(Boolean).join('\n'),
+    html: `
+      <div dir="rtl" style="font-family:Tahoma,Arial,sans-serif;line-height:1.8;color:#1f1f1f">
+        <h2>تم تأكيد طلبك في قلم موشن</h2>
+        <p>مرحبا ${escapeHtml(order.name)},</p>
+        <p>تم تأكيد الدفع بنجاح، ووصل طلبك إلينا.</p>
+        <p><strong>رقم الطلب:</strong> <span dir="ltr">${escapeHtml(order.id)}</span></p>
+        <p><a href="${trackUrl}">تتبع حالة الطلب</a></p>
+        <p>سنراجع التفاصيل ونتواصل معك إذا احتجنا أي معلومات إضافية.</p>
+      </div>
+    `
+  }).catch(error => console.warn(error.message)));
+
+  if (validEmail(process.env.ADMIN_EMAIL || '')) {
+    tasks.push(sendEmail({
+      to: process.env.ADMIN_EMAIL,
+      subject: `طلب مدفوع جديد - ${order.packageId}`,
+      replyTo: order.email,
+      text: orderSummary(order),
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f1f1f">
+          <h2>New paid Qalam Motion order</h2>
+          <pre style="white-space:pre-wrap;background:#f6f2eb;padding:16px;border-radius:8px">${escapeHtml(orderSummary(order))}</pre>
+          <p><a href="${publicBaseUrl}/admin.html">Open admin dashboard</a></p>
+        </div>
+      `
+    }).catch(error => console.warn(error.message)));
+  }
+
+  await Promise.all(tasks);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function webhookHeaders(req) {
+  return {
+    auth_algo: req.get('paypal-auth-algo'),
+    cert_url: req.get('paypal-cert-url'),
+    transmission_id: req.get('paypal-transmission-id'),
+    transmission_sig: req.get('paypal-transmission-sig'),
+    transmission_time: req.get('paypal-transmission-time')
+  };
+}
+
+async function paypalWebhookVerified(req) {
+  if (!process.env.PAYPAL_WEBHOOK_ID) return false;
+  const headers = webhookHeaders(req);
+  if (Object.values(headers).some(value => !value)) return false;
+
+  const result = await paypal('/v1/notifications/verify-webhook-signature', 'POST', {
+    ...headers,
+    webhook_id: process.env.PAYPAL_WEBHOOK_ID,
+    webhook_event: req.body
+  });
+  return result.verification_status === 'SUCCESS';
+}
+
+function captureFromWebhook(resource, record) {
+  const capture = {
+    id: clean(resource?.id, 120),
+    status: clean(resource?.status, 40).toUpperCase(),
+    custom_id: clean(resource?.custom_id, 120),
+    amount: resource?.amount || {}
+  };
+  const paypalOrderId = clean(resource?.supplementary_data?.related_ids?.order_id, 120);
+  const amountMatches = capture.amount?.value === record.amount && capture.amount?.currency_code === record.currency;
+  const orderMatches = !paypalOrderId || paypalOrderId === record.paypalOrderId;
+  if (!capture.id || capture.status !== 'COMPLETED' || capture.custom_id !== record.id || !amountMatches || !orderMatches) {
+    return null;
+  }
+  return capture;
+}
+
+async function finishPaidOrder(order, capture) {
+  const paidOrder = await store.markPaid(order.id, capture);
+  if (paidOrder?.paymentCompletedNow) {
+    await notifyPaidOrder(paidOrder);
+  }
+  return paidOrder;
 }
 
 function verifiedCapture(result, record) {
@@ -516,11 +679,69 @@ app.post('/api/orders/:paypalOrderId/capture', async (req, res) => {
       return fail(res, 409, 'Payment has not been verified. Contact support.');
     }
 
-    const paidOrder = await store.markPaid(record.id, capture);
+    const paidOrder = await finishPaidOrder(record, capture);
     res.json({ status: 'PAID', orderId: paidOrder.id });
   } catch (error) {
     console.error(error);
     fail(res, 502, 'Could not confirm payment. Do not pay again; contact support with your order reference.');
+  }
+});
+
+app.post('/api/paypal/webhook', async (req, res) => {
+  if (!process.env.PAYPAL_WEBHOOK_ID) {
+    return fail(res, 503, 'PayPal webhook is not configured');
+  }
+
+  try {
+    if (!await paypalWebhookVerified(req)) {
+      return fail(res, 400, 'Webhook signature verification failed');
+    }
+
+    const eventType = clean(req.body?.event_type, 80);
+    const resource = req.body?.resource || {};
+
+    if (eventType === 'PAYMENT.CAPTURE.COMPLETED') {
+      const orderId = clean(resource.custom_id, 120);
+      const record = await store.findById(orderId);
+      if (!record) {
+        console.warn(`Ignoring PayPal webhook for unknown order ${orderId || 'none'}`);
+        return res.json({ received: true, ignored: true });
+      }
+      if (record.status === 'PAID') return res.json({ received: true, status: 'PAID' });
+
+      const capture = captureFromWebhook(resource, record);
+      if (!capture) {
+        console.warn(`Ignoring PayPal webhook with mismatched capture for order ${record.id}`);
+        return res.json({ received: true, ignored: true });
+      }
+
+      const paidOrder = await finishPaidOrder(record, capture);
+      return res.json({ received: true, status: paidOrder.status, orderId: paidOrder.id });
+    }
+
+    if (eventType === 'CHECKOUT.ORDER.COMPLETED') {
+      const paypalOrderId = clean(resource.id, 120);
+      const record = await store.findByPayPalOrderId(paypalOrderId);
+      if (!record) {
+        console.warn(`Ignoring PayPal completed-order webhook for unknown PayPal order ${paypalOrderId || 'none'}`);
+        return res.json({ received: true, ignored: true });
+      }
+      if (record.status === 'PAID') return res.json({ received: true, status: 'PAID' });
+
+      const capture = verifiedCapture(resource, record);
+      if (!capture) {
+        console.warn(`Ignoring PayPal completed-order webhook with mismatched capture for order ${record.id}`);
+        return res.json({ received: true, ignored: true });
+      }
+
+      const paidOrder = await finishPaidOrder(record, capture);
+      return res.json({ received: true, status: paidOrder.status, orderId: paidOrder.id });
+    }
+
+    res.json({ received: true, ignored: true });
+  } catch (error) {
+    console.error(error);
+    fail(res, 500, 'Could not process PayPal webhook');
   }
 });
 
@@ -544,14 +765,22 @@ app.get('/api/admin/orders', async (req, res) => {
 
 app.get('/api/admin/session', (req, res) => {
   if (!adminAuthorized(req)) return fail(res, 401, 'Unauthorized');
-  res.set('Cache-Control', 'no-store').json({ authenticated: true });
+  res.set('Cache-Control', 'no-store').json({
+    authenticated: true,
+    emailConfigured: emailsConfigured(),
+    webhookConfigured: Boolean(process.env.PAYPAL_WEBHOOK_ID)
+  });
 });
 
 app.post('/api/admin/login', (req, res) => {
   const token = clean(req.body?.token, 500);
   if (!adminTokenMatches(token)) return fail(res, 401, 'Unauthorized');
   setAdminSession(res);
-  res.set('Cache-Control', 'no-store').json({ authenticated: true });
+  res.set('Cache-Control', 'no-store').json({
+    authenticated: true,
+    emailConfigured: emailsConfigured(),
+    webhookConfigured: Boolean(process.env.PAYPAL_WEBHOOK_ID)
+  });
 });
 
 app.post('/api/admin/logout', (req, res) => {
