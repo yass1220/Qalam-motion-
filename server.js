@@ -42,8 +42,8 @@ const publicBaseUrl = (process.env.PUBLIC_BASE_URL || 'http://localhost:3000').r
 const paypalWebhookPath = '/api/paypal/webhook';
 const paypalWebhookUrl = `${publicBaseUrl}${paypalWebhookPath}`;
 const catalog = {
-  short: { name: 'Short Story', price: '29.00', duration: 'Up to 20 seconds' },
-  signature: { name: 'Signature Reel', price: '59.00', duration: 'Up to 45 seconds' }
+  short: { name: 'Drawn Story', price: '15.00', duration: '40–45 seconds', durationSeconds: { min: 40, max: 45 } },
+  signature: { name: 'Extended Story', price: '25.00', duration: '60–75 seconds', durationSeconds: { min: 60, max: 75 } }
 };
 const fulfillmentStatuses = new Set(['NEW', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'DELIVERED', 'CANCELLED']);
 const adminSessionCookie = 'qm_admin';
