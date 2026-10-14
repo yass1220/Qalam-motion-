@@ -736,8 +736,8 @@ app.post('/api/orders', async (req, res) => {
             brand_name: 'Qalam Motion',
             user_action: 'PAY_NOW',
             shipping_preference: 'NO_SHIPPING',
-            return_url: `${publicBaseUrl}/?payment=return`,
-            cancel_url: `${publicBaseUrl}/?payment=cancel`
+            return_url: `${publicBaseUrl}/?payment=return&orderId=${encodeURIComponent(localId)}`,
+            cancel_url: `${publicBaseUrl}/?payment=cancel&orderId=${encodeURIComponent(localId)}`
           }
         }
       }
@@ -770,8 +770,9 @@ app.post('/api/orders', async (req, res) => {
   }
 });
 
-app.post('/api/orders/:paypalOrderId/capture', async (req, res) => {
-  const record = await store.findByPayPalOrderId(req.params.paypalOrderId);
+app.post('/api/orders/:orderRef/capture', async (req, res) => {
+  const orderRef = clean(req.params.orderRef, 120);
+  const record = await store.findByPayPalOrderId(orderRef) || await store.findById(orderRef);
   if (!record) return fail(res, 404, 'Order not found');
   if (record.status === 'PAID') return res.json({ status: 'PAID', orderId: record.id, statusUrl: orderUrl(record) });
 

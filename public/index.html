@@ -50,8 +50,33 @@ main>section:not(.hero){max-width:1120px}
 const $=id=>document.getElementById(id);
 function setMessage(text){$('message').textContent=text}
 function statusPath(orderId){return'/status.html?orderId='+encodeURIComponent(orderId)}
+function setStored(storage,key,value){try{storage.setItem(key,value)}catch{}}
+function getStored(storage,key){try{return storage.getItem(key)}catch{return''}}
+function removeStored(storage,key){try{storage.removeItem(key)}catch{}}
+function rememberOrder(orderId,paypalOrderId){
+  const pending={orderId,paypalOrderId,createdAt:Date.now()};
+  setStored(sessionStorage,'qalam_order_id',orderId);
+  setStored(sessionStorage,'qalam_paypal_order',paypalOrderId);
+  setStored(sessionStorage,'qalam_pending_checkout',JSON.stringify(pending));
+  setStored(localStorage,'qalam_pending_checkout',JSON.stringify(pending));
+}
+function pendingOrder(){
+  const raw=getStored(sessionStorage,'qalam_pending_checkout')||getStored(localStorage,'qalam_pending_checkout');
+  try{
+    const pending=JSON.parse(raw||'{}');
+    if(Date.now()-Number(pending.createdAt||0)>30*60*1000)return null;
+    return pending;
+  }catch{
+    return null;
+  }
+}
+function clearPendingOrder(){
+  removeStored(sessionStorage,'qalam_paypal_order');
+  removeStored(sessionStorage,'qalam_pending_checkout');
+  removeStored(localStorage,'qalam_pending_checkout');
+}
 function showPaid(orderId,statusUrl){
-  sessionStorage.setItem('qalam_order_id',orderId);
+  setStored(sessionStorage,'qalam_order_id',orderId);
   const url=statusUrl||statusPath(orderId);
   $('message').innerHTML='';
   const title=document.createElement('strong');
@@ -69,7 +94,7 @@ function showPaid(orderId,statusUrl){
   copy.type='button';
   copy.textContent='نسخ معلومات الطلب';
   copy.onclick=async()=>{
-    const email=sessionStorage.getItem('qalam_order_email')||$('email').value.trim();
+    const email=getStored(sessionStorage,'qalam_order_email')||$('email').value.trim();
     const fullUrl=new URL(url,location.origin).href;
     const details=['Qalam Motion','Order ID: '+orderId,email?'Email: '+email:'','Status: '+fullUrl].filter(Boolean).join('\n');
     try{await navigator.clipboard.writeText(details);copy.textContent='تم النسخ'}catch{copy.textContent='انسخ رقم الطلب يدويا'}
@@ -92,11 +117,11 @@ $('checkout').onsubmit=async e=>{
   setMessage('جارٍ تجهيز صفحة الدفع الآمنة…');
   try{
     const email=$('email').value.trim();
-    sessionStorage.setItem('qalam_order_email',email);
+    setStored(sessionStorage,'qalam_order_email',email);
     const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:$('name').value,email,contact:$('contact').value,packageId:$('package').value,brief:$('brief').value})});
     const j=await r.json();
     if(!r.ok)throw Error(j.error||'تعذّر بدء الدفع');
-    sessionStorage.setItem('qalam_paypal_order',j.paypalOrderId);
+    rememberOrder(j.orderId,j.paypalOrderId);
     location.assign(j.approvalUrl);
   }catch(e){
     setMessage(e.message);
@@ -104,17 +129,22 @@ $('checkout').onsubmit=async e=>{
   }
 };
 const q=new URLSearchParams(location.search);
-if(q.get('payment')==='cancel')setMessage('تم إلغاء الدفع.');
-if(q.get('payment')==='return'){
-  const token=q.get('token');
-  if(!token)setMessage('لم يرجع باي بال رقم الطلب. تواصل مع الدعم قبل إعادة المحاولة.');
+const pending=pendingOrder();
+if(q.get('payment')==='cancel'){
+  clearPendingOrder();
+  setMessage('تم إلغاء الدفع.');
+}
+const returnedFromPayPal=q.get('payment')==='return'||q.has('token')||/paypal\\.com$/i.test(new URL(document.referrer||location.href).hostname);
+if(returnedFromPayPal&&q.get('payment')!=='cancel'){
+  const orderRef=q.get('token')||q.get('orderId')||pending?.paypalOrderId||pending?.orderId||'';
+  if(!orderRef)setMessage('لم يرجع باي بال رقم الطلب. تواصل مع الدعم قبل إعادة المحاولة.');
   else{
     history.replaceState({},'',location.pathname+'#order');
     setMessage('جارٍ التحقق من الدفع عبر باي بال…');
-    fetch('/api/orders/'+encodeURIComponent(token)+'/capture',{method:'POST'}).then(async r=>{
+    fetch('/api/orders/'+encodeURIComponent(orderRef)+'/capture',{method:'POST'}).then(async r=>{
       const j=await r.json();
       if(!r.ok)throw Error(j.error);
-      sessionStorage.removeItem('qalam_paypal_order');
+      clearPendingOrder();
       showPaid(j.orderId,j.statusUrl);
     }).catch(e=>setMessage(e.message));
   }
