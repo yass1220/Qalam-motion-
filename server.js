@@ -26,6 +26,10 @@ const adminLoginLimiter = rateLimit({
   message: { error: 'Too many admin login attempts. Try again later.' }
 });
 app.use('/api', apiLimiter);
+app.get(['/admin', '/admin/'], (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.redirect(302, '/admin.html');
+});
 app.use('/admin.html', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
