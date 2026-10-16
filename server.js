@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { Pool } from 'pg';
+import { inspectPayPalReceiver } from './paypal-receiver.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -502,7 +503,11 @@ async function paypal(pathname, method, body, requestId) {
     ...(body ? { body: JSON.stringify(body) } : {})
   });
   const json = await response.json().catch(() => ({}));
-  if (!response.ok) throw Error(`PayPal ${method} failed (${response.status}): ${json.name || 'unknown error'}`);
+  if (!response.ok) {
+    const error = Error(`PayPal ${method} failed (${response.status}): ${json.name || 'unknown error'}`);
+    error.status = response.status;
+    throw error;
+  }
   return json;
 }
 
@@ -968,6 +973,23 @@ app.post('/api/orders/status', async (req, res) => {
   res.set('Cache-Control', 'no-store').json(customerOrder(record));
 });
 
+app.get('/api/admin/paypal-account', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (!requireAdmin(req, res)) return;
+  if (!paypalCredentialsConfigured()) return fail(res, 503, 'PayPal credentials are not configured');
+  try {
+    const result = await inspectPayPalReceiver({
+      mode,
+      listOrders: () => store.listOrders(),
+      readOrder: id => paypal(`/v2/checkout/orders/${encodeURIComponent(id)}`, 'GET')
+    });
+    res.json(result);
+  } catch (error) {
+    console.warn('PayPal receiving account verification failed');
+    fail(res, 502, 'Could not verify the PayPal receiving account. No payment was made.');
+  }
+});
+
 app.get('/api/admin/orders', async (req, res) => {
   if (!requireAdmin(req, res)) return;
 
@@ -1112,3 +1134,4 @@ app.get('/health', async (req, res) => {
 app.listen(Number(process.env.PORT) || 3000, () => {
   console.log(`Qalam Motion running on port ${process.env.PORT || 3000} (${mode}, ${store.type})`);
 });
+
