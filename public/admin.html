@@ -67,6 +67,13 @@
       </div>
     </section>
 
+    <section class="panel hidden" id="paypal-account-panel">
+      <h2>حساب PayPal المستلم</h2>
+      <p class="muted">تحقّق من الحساب الذي يستلم مدفوعات الموقع باستخدام بيانات طلب سابق لدى PayPal.</p>
+      <button id="check-paypal-account" class="button secondary" type="button" disabled>التحقق من حساب PayPal</button>
+      <p id="paypal-account-result" class="muted" role="status" aria-live="polite">لم يتم التحقق بعد.</p>
+    </section>
+
     <section class="panel">
       <table>
         <thead>
@@ -140,6 +147,9 @@
       sessionInfo = isAuthenticated ? { ...sessionInfo, ...info } : { emailConfigured: false, webhookConfigured: false };
       $('login-row').classList.toggle('hidden', isAuthenticated);
       $('logged-in').classList.toggle('hidden', !isAuthenticated);
+      $('paypal-account-panel').classList.toggle('hidden', !isAuthenticated);
+      $('check-paypal-account').disabled = !isAuthenticated;
+      if (!isAuthenticated) $('paypal-account-result').textContent = 'لم يتم التحقق بعد.';
       if (isAuthenticated) $('token').value = '';
       const emailState = !sessionInfo.emailConfigured ? 'غير مفعّل' : sessionInfo.emailTestMode ? 'اختبار فقط' : 'مفعّل';
       $('email-config').textContent = `الإيميل: ${emailState}`;
@@ -237,6 +247,29 @@
       }
     }
 
+    async function checkPayPalAccount() {
+      const button = $('check-paypal-account');
+      const result = $('paypal-account-result');
+      button.disabled = true;
+      result.textContent = 'جار التحقق من حساب PayPal المستلم...';
+      try {
+        const response = await fetch('/api/admin/paypal-account', { credentials: 'same-origin', cache: 'no-store' });
+        const json = await response.json();
+        if (response.status === 401) setAuthenticated(false);
+        if (!response.ok) throw Error(response.status === 401 ? 'سجّل الدخول إلى لوحة الإدارة أولاً.' : 'تعذّر التحقق من الحساب الآن.');
+        const modeLabel = json.mode === 'live' ? 'Live — مدفوعات حقيقية' : 'Sandbox — مدفوعات تجريبية';
+        if (!json.verified) {
+          result.textContent = `${modeLabel}. لا يوجد طلب سابق متاح للتحقق من الحساب. لم يتم إنشاء طلب أو إجراء دفعة.`;
+          return;
+        }
+        result.textContent = `${modeLabel}. الحساب المستلم: ${json.email || json.merchantId}. تم التحقق من بيانات المستلم لدى PayPal لطلب سابق؛ لم يتم إجراء دفعة جديدة.`;
+      } catch (error) {
+        result.textContent = error.message;
+      } finally {
+        button.disabled = $('logged-in').classList.contains('hidden');
+      }
+    }
+
     async function testEmail() {
       $('message').textContent = 'جار إرسال رسالة اختبار...';
       $('test-email').disabled = true;
@@ -285,6 +318,7 @@
     $('refresh').addEventListener('click', loadOrders);
     $('setup-webhook').addEventListener('click', setupWebhook);
     $('test-email').addEventListener('click', testEmail);
+    $('check-paypal-account').addEventListener('click', checkPayPalAccount);
     $('logout').addEventListener('click', logout);
     $('token').addEventListener('keydown', event => {
       if (event.key === 'Enter') login();
@@ -315,3 +349,4 @@
   </script>
 </body>
 </html>
+

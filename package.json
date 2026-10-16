@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js"
+    "check": "node --check server.js && node --check paypal-receiver.js",
+    "test": "node --test test/*.test.js"
   },
   "engines": {
     "node": ">=20"
