@@ -24,7 +24,7 @@
     <header>
       <div>
         <a class="brand" href="/">قلم موشن</a>
-        <p class="muted">لوحة داخلية لقراءة الطلبات المدفوعة والطلبات التي تنتظر الدفع.</p>
+        <p class="muted">متابعة الاستفسارات المجانية والطلبات المدفوعة والطلبات التي تنتظر الدفع.</p>
       </div>
       <a class="button secondary" href="/">العودة للموقع</a>
     </header>
@@ -49,7 +49,7 @@
     <section class="panel">
       <div class="toolbar">
         <div class="stats">
-          <span class="stat" id="total">0 طلب عميل</span>
+          <span class="stat" id="enquiries">0 استفسار بدون دفع</span><span class="stat" id="total">0 طلب عميل</span>
           <span class="stat" id="paid">0 مدفوع حقيقي</span>
           <span class="stat" id="waiting">0 ينتظر الدفع</span>
           <span class="stat" id="active">0 قيد التنفيذ</span>
@@ -71,7 +71,7 @@
       <p class="muted">الإحصاءات تخص طلبات العملاء. طلبات Sandbox والاختبارات الداخلية والعناوين التجريبية لا تُحتسب مبيعات. الطلبات القديمة ذات البيئة غير الموثقة لا تُحتسب مدفوعات حقيقية.</p>
       <label for="order-filter">عرض الطلبات</label>
       <select id="order-filter">
-        <option value="customer">طلبات العملاء</option>
+        <option value="customer">طلبات واستفسارات العملاء</option><option value="enquiry">الاستفسارات بدون دفع</option>
         <option value="test">طلبات الاختبار</option>
         <option value="all">كل الطلبات</option>
       </select>
@@ -117,7 +117,7 @@
     ];
 
     function paymentLabel(status) {
-      return status === 'PAID' ? 'مدفوع' : 'ينتظر الدفع';
+      return status === 'ENQUIRY' ? 'استفسار — بدون دفع' : status === 'PAID' ? 'مدفوع' : 'ينتظر الدفع';
     }
 
     function fulfillmentLabel(status) {
@@ -181,13 +181,14 @@
 
     function visibleOrders() {
       const filter = $('order-filter').value;
-      return currentOrders.filter(order => filter === 'all' || (filter === 'test' ? isTestOrder(order) : !isTestOrder(order)));
+      return currentOrders.filter(order => filter === 'all' || (filter === 'enquiry' ? order.status === 'ENQUIRY' && !isTestOrder(order) : filter === 'test' ? isTestOrder(order) : !isTestOrder(order)));
     }
 
     function render(orders) {
       currentOrders = orders;
       const stats = customerOrderStats(orders);
       $('total').textContent = `${stats.total} طلب عميل`;
+      $('enquiries').textContent = `${stats.enquiries} استفسار بدون دفع`;
       $('paid').textContent = `${stats.paid} مدفوع حقيقي`;
       $('waiting').textContent = `${stats.waiting} ينتظر الدفع`;
       $('active').textContent = `${stats.active} قيد التنفيذ`;
@@ -200,10 +201,10 @@
       $('empty').textContent = 'لا توجد طلبات في هذا العرض.';
       $('orders').innerHTML = visible.map(order => `
         <tr data-order-id="${escapeHtml(order.id)}">
-          <td data-label="الدفع"><span class="status ${order.status === 'PAID' ? 'paid' : 'waiting'}">${paymentLabel(order.status)}</span><br><small>${order.paymentMode === 'live' ? 'Live' : order.paymentMode === 'sandbox' ? 'Sandbox' : 'بيئة غير موثّقة'}</small>${isTestOrder(order) ? '<br><span class="status waiting">طلب اختبار</span>' : ''}<span class="order-id ltr">${escapeHtml(order.id)}</span></td>
+          <td data-label="الدفع"><span class="status ${order.status === 'PAID' ? 'paid' : 'waiting'}">${paymentLabel(order.status)}</span><br><small>${order.status === 'ENQUIRY' ? 'لم يبدأ الدفع' : order.paymentMode === 'live' ? 'Live' : order.paymentMode === 'sandbox' ? 'Sandbox' : 'بيئة غير موثّقة'}</small>${isTestOrder(order) ? '<br><span class="status waiting">طلب اختبار</span>' : ''}<span class="order-id ltr">${escapeHtml(order.id)}</span></td>
           <td data-label="التنفيذ" class="management"><span class="status ${fulfillmentClass(order.fulfillmentStatus)}">${fulfillmentLabel(order.fulfillmentStatus)}</span>${renderManagement(order)}</td>
           <td data-label="الباقة"><strong>${escapeHtml(order.packageId)}</strong><br><span class="muted ltr">${escapeHtml(order.amount)} ${escapeHtml(order.currency || 'USD')}</span></td>
-          <td data-label="العميل"><strong>${escapeHtml(order.name)}</strong><br><span class="muted ltr">${escapeHtml(order.email)}</span></td>
+          <td data-label="العميل"><strong>${escapeHtml(order.name)}</strong><br><span class="muted ltr">${escapeHtml(order.email)}</span>${order.status === 'ENQUIRY' ? `<br><a class="button secondary" href="mailto:${encodeURIComponent(order.email)}?subject=${encodeURIComponent('Qalam Motion — '+order.id)}">الرد بالبريد</a>` : ''}</td>
           <td data-label="التواصل" class="ltr">${escapeHtml(order.contact || '-')}</td>
           <td data-label="الفكرة" class="brief">${escapeHtml(order.brief)}</td>
           <td data-label="التواريخ" class="ltr">Created: ${formatDate(order.createdAt)}<br>Paid: ${formatDate(order.paidAt)}<br>Updated: ${formatDate(order.updatedAt)}</td>

@@ -7,6 +7,7 @@ import net from 'node:net';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { randomUUID } from 'node:crypto';
 
 test('checkout pins server pricing and mode, admin changes require authorization, and only verified matching captures count as paid', async t => {
   const cwd = fileURLToPath(new URL('../', import.meta.url));
@@ -87,4 +88,27 @@ test('checkout pins server pricing and mode, admin changes require authorization
   const publicStatus = await status.json();
   assert.equal(status.headers.get('cache-control'), 'no-store');
   for (const key of ['internalTest','adminNotes','email','name','paypalOrderId','captureId']) assert.equal(publicStatus[key], undefined);
+
+  const callsBeforeEnquiry = await fs.readFile(callsFile, 'utf8');
+  const idea = { requestId: randomUUID(), packageId: 'short', name: 'Local enquiry', email: 'lead@local.test', contact: '',
+    brief: 'An idea to review before any payment is requested.', amount: '0.01', paymentMode: 'live', internalTest: true };
+  assert.equal((await send('/api/enquiries', { ...idea, email: 'invalid' })).status, 400);
+  const enquiry = await send('/api/enquiries', idea);
+  assert.equal(enquiry.status, 200);
+  assert.equal(enquiry.headers.get('cache-control'), 'no-store');
+  const enquiryResult = await enquiry.json();
+  assert.deepEqual(enquiryResult, { enquiryId: idea.requestId, status: 'ENQUIRY' });
+  assert.equal((await send('/api/enquiries', idea)).status, 200);
+  assert.equal((await send('/api/enquiries', { ...idea, brief: 'Changed details for the same request.' })).status, 409);
+  assert.equal((await send('/api/enquiries', { ...idea, requestId: randomUUID(), website: 'bot-filled-field' })).status, 400);
+  assert.equal((await send('/api/orders/' + idea.requestId + '/capture', {})).status, 409);
+  assert.equal(await fs.readFile(callsFile, 'utf8'), callsBeforeEnquiry, 'enquiry must never call PayPal or email a customer');
+  const records = JSON.parse(await fs.readFile(path.join(directory, 'orders.json'), 'utf8'));
+  const savedEnquiry = records.find(item => item.id === idea.requestId);
+  assert.equal(savedEnquiry.status, 'ENQUIRY');
+  assert.equal(savedEnquiry.paymentMode, 'unknown');
+  assert.equal(savedEnquiry.amount, '15.00');
+  assert.equal(savedEnquiry.internalTest, false);
+  assert.equal(records.filter(item => item.id === idea.requestId).length, 1);
+  assert.equal((await send('/api/enquiries', { ...idea, requestId: randomUUID() })).status, 429, 'public enquiry rate limit applies');
 });

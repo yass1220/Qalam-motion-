@@ -28,6 +28,11 @@ const adminLoginLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many admin login attempts. Try again later.' }
 });
+const enquiryLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, limit: 5,
+  standardHeaders: 'draft-7', legacyHeaders: false,
+  message: { error: 'Too many enquiries. Please try again later or contact support by email.' }
+});
 app.use('/api', apiLimiter);
 app.use('/api/admin', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
@@ -258,6 +263,21 @@ function createJsonStore() {
       orders.push(normalizeOrder(order));
       await persist();
     },
+    async createEnquiry(order) {
+      const existing = orders.find(item => item.id === order.id);
+      if (existing) {
+        if (existing.status !== 'ENQUIRY' || ['name', 'email', 'contact', 'brief', 'packageId'].some(key => existing[key] !== order[key])) {
+          const error = Error('Request reference already used');
+          error.status = 409;
+          throw error;
+        }
+        return normalizeOrder(existing);
+      }
+      const record = normalizeOrder({ ...order, paypalOrderId: `enquiry:${order.id}`, status: 'ENQUIRY', paymentMode: 'unknown' });
+      orders.push(record);
+      await persist();
+      return record;
+    },
     async findById(orderId) {
       return normalizeOrder(orders.find(order => order.id === orderId) || null);
     },
@@ -267,6 +287,7 @@ function createJsonStore() {
     async markPaid(orderId, capture, buildMessages, captureMode) {
       const order = orders.find(item => item.id === orderId);
       if (!order) return null;
+      if (order.status === 'ENQUIRY') throw Error('An enquiry cannot be captured or marked paid');
       const wasAlreadyPaid = order.status === 'PAID';
       if (order.status === 'PAID' && order.captureId && order.captureId !== capture.id) {
         throw Error('Order is already paid with a different capture ID');
@@ -418,7 +439,7 @@ function drainNotifications() {
   if (store.type !== 'postgres' || !emailsConfigured()) return Promise.resolve();
   if (notificationDrain) return notificationDrain;
   notificationDrain = processEmailOutbox({ store, deliver: deliverEmail })
-    .catch(() => console.warn('Payment notification queue needs attention'))
+    .catch(() => console.warn('Notification queue needs attention'))
     .finally(() => { notificationDrain = null; });
   return notificationDrain;
 }
@@ -691,6 +712,44 @@ app.get('/api/config', (req, res) => {
   });
 });
 
+// This saves an idea for owner review. It never creates or captures a PayPal order.
+app.post('/api/enquiries', enquiryLimiter, async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const packageId = clean(req.body?.packageId, 30);
+  const pkg = catalog[packageId];
+  const name = clean(req.body?.name, 100);
+  const email = clean(req.body?.email, 254).toLowerCase();
+  const contact = clean(req.body?.contact, 120);
+  const brief = clean(req.body?.brief, 4000);
+  const id = clean(req.body?.requestId, 50);
+  if (!pkg || name.length < 2 || !validEmail(email) || brief.length < 15 ||
+      !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id) || clean(req.body?.website, 200)) {
+    return fail(res, 400, 'Enter a valid name, email, package and idea of at least 15 characters.');
+  }
+  try {
+    const record = await store.createEnquiry({
+      id, packageId, name, email, contact, brief,
+      amount: pkg.price, currency: 'USD', createdAt: new Date().toISOString()
+    }, order => {
+      if (isTestOrder(order) || !canSendNotificationTo(adminEmail())) return [];
+      return [{ kind: 'enquiry-admin', payload: emailPayload({
+        to: adminEmail(), subject: 'استفسار فيديو جديد — لم يتم الدفع | Qalam Motion',
+        replyTo: resendTestMode() ? '' : order.email,
+        text: ['New video enquiry — NO PAYMENT', `Reference: ${order.id}`, `Name: ${order.name}`,
+          `Email: ${order.email}`, `Contact: ${order.contact || '-'}`, `Package: ${order.packageId}`,
+          `Listed price: ${order.amount} USD (not charged)`, order.brief,
+          `Review and reply: ${publicBaseUrl}/admin.html`].join('\n')
+      }) }];
+    });
+    void drainNotifications();
+    res.json({ enquiryId: record.id, status: 'ENQUIRY' });
+  } catch (error) {
+    if (error.status === 409) return fail(res, 409, 'Request reference already used. Reload the page before sending a different idea.');
+    console.warn('Enquiry could not be saved');
+    fail(res, 503, 'Could not save your idea. Please try again later or contact support by email.');
+  }
+});
+
 app.post('/api/orders', async (req, res) => {
   try {
     const { packageId } = req.body || {};
@@ -759,6 +818,7 @@ app.post('/api/orders/:orderRef/capture', async (req, res) => {
   const orderRef = clean(req.params.orderRef, 120);
   const record = await store.findByPayPalOrderId(orderRef) || await store.findById(orderRef);
   if (!record) return fail(res, 404, 'Order not found');
+  if (record.status === 'ENQUIRY') return fail(res, 409, 'This is an enquiry, not a payment order. Agree the project details before starting a separate checkout.');
   if (record.status === 'PAID') return res.json({ status: 'PAID', orderId: record.id, statusUrl: orderUrl(record) });
   if (normalizePaymentMode(record.paymentMode) !== 'unknown' && record.paymentMode !== mode) {
     return fail(res, 409, 'This order belongs to a different PayPal environment. Contact support; do not pay it again.');

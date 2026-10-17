@@ -55,6 +55,7 @@ test('new order environment, management flags and payment notifications survive 
   let store = createPostgresStore({ pool: adapter(db) });
   await store.init();
   await store.createOrder(order('persistent'));
+  await store.createEnquiry(order('persistent-enquiry'), () => messages().slice(0, 1));
   await store.updateManagement('persistent', { internalTest: true, adminNotes: 'Verification only', fulfillmentStatus: 'CANCELLED' });
   await store.updateManagement('persistent', { internalTest: false });
   const paid = await store.markPaid('persistent', capture('capture-persistent'), messages, 'live');
@@ -70,7 +71,27 @@ test('new order environment, management flags and payment notifications survive 
   assert.equal(restored.fulfillmentStatus, 'CANCELLED');
   assert.equal(restored.adminNotes, 'Verification only');
   assert.equal(restored.captureId, 'capture-persistent');
-  assert.equal((await store.notificationSummary()).pending, 2);
+  assert.equal((await store.notificationSummary()).pending, 3);
+  assert.equal((await store.findById('persistent-enquiry')).status, 'ENQUIRY');
+});
+
+test('enquiries and owner notifications persist atomically, deduplicate retries, and cannot become captured payments', async t => {
+  const { db, store } = await database(t);
+  const enquiry = order('enquiry');
+  await assert.rejects(store.createEnquiry(enquiry, () => { throw Error('Cannot construct owner notification'); }));
+  assert.equal(await store.findById(enquiry.id), null);
+  assert.equal((await store.notificationSummary()).pending, 0);
+  const saved = await store.createEnquiry(enquiry, () => messages().slice(0, 1));
+  assert.equal(saved.status, 'ENQUIRY');
+  assert.equal(saved.paymentMode, 'unknown');
+  assert.equal(saved.paypalOrderId, 'enquiry:enquiry');
+  await store.createEnquiry(enquiry, () => { assert.fail('A replay must not queue another email'); });
+  assert.equal((await store.listOrders()).length, 1);
+  assert.equal((await store.notificationSummary()).pending, 1);
+  await assert.rejects(store.createEnquiry({ ...enquiry, brief: 'Different idea' }));
+  await assert.rejects(store.markPaid(enquiry.id, capture('capture-enquiry'), messages, 'live'));
+  assert.equal((await db.query('select count(*)::integer as n from payments')).rows[0].n, 0);
+  assert.equal((await store.findById(enquiry.id)).status, 'ENQUIRY');
 });
 
 test('captured payment and notification jobs commit atomically, replay safely, and reject conflicting captures', async t => {
