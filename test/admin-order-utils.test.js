@@ -12,11 +12,24 @@ test('Sandbox, reserved email domains and explicit internal tests never count as
     { status: 'AWAITING_PAYMENT', email: 'pending@customer.test' },
     { status: 'AWAITING_PAYMENT', fulfillmentStatus: 'CANCELLED' }
   ];
-  assert.deepEqual(customerOrderStats(orders), { total: 4, paid: 1, waiting: 1, active: 1, delivered: 0, tests: 3, unverifiedPaid: 1 });
+  assert.deepEqual(customerOrderStats(orders), { total: 4, enquiries: 0, paid: 1, waiting: 1, active: 1, delivered: 0, tests: 3, unverifiedPaid: 1 });
   assert.equal(isTestOrder({ email: 'real@example.com.customer.test' }), false);
   assert.equal(isTestOrder({ name: 'Test', email: 'user@customer.test' }), false);
   assert.equal(normalizePaymentMode(undefined), 'unknown');
   assert.equal(normalizePaymentMode('LIVE'), 'unknown');
+});
+
+test('free enquiries are counted separately from orders, payment attempts and revenue', () => {
+  const stats = customerOrderStats([
+    { status: 'ENQUIRY', email: 'lead@customer.test' },
+    { status: 'ENQUIRY', email: 'cancelled@customer.test', fulfillmentStatus: 'CANCELLED' },
+    { status: 'ENQUIRY', email: 'check@example.com' }
+  ]);
+  assert.equal(stats.total, 0);
+  assert.equal(stats.waiting, 0);
+  assert.equal(stats.paid, 0);
+  assert.equal(stats.enquiries, 1);
+  assert.equal(stats.tests, 1);
 });
 
 test('CSV exports neutralize formulas and escape quotes without changing ordinary text', () => {

@@ -86,5 +86,29 @@ advertise guaranteed card checkout while relying only on PayPal's account- and
 buyer-dependent checkout options. Keep the existing Payzone inquiry pending
 rather than creating duplicate applications or financial accounts.
 
+## Enquiries before payment
+
+The existing homepage now defaults to submitting an idea without payment. The
+visitor can explicitly select the separate PayPal checkout option. Prices,
+approved visual design, and payment-verification rules stay the same.
+
+An enquiry is saved in the existing orders table with status `ENQUIRY` and a
+non-PayPal reference. It cannot be captured or marked paid. The admin dashboard
+counts enquiries separately and offers an email reply link; opening that link
+does not send the reply. Agree scope and a delivery date with each prospective
+customer before asking them to use the existing paid checkout.
+
+The enquiry and its single owner notification commit in one PostgreSQL
+transaction. The existing persistent notification worker retries delivery.
+No automatic customer email is sent by this form. A honeypot and five enquiries
+per IP per hour limit abuse. Repeating the same request ID and content does not
+duplicate the record or notification. Reserved example email addresses remain
+tests and never generate email jobs.
+
+The owner confirmed on 2026-10-17 that the production Postgres volume has no
+Railway backups and that the account is still on Trial. Built-in backup creation
+is gated to Pro in this account. No plan upgrade, new storage service, or paid
+advertising is authorized. A separate backup and restore test remains necessary.
+
 Domain auto-renewal and subscription changes require owner approval of future
 charges. Do not change them as part of an ordinary code deployment.

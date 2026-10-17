@@ -110,6 +110,40 @@ export function createPostgresStore({ pool: suppliedPool, connectionString = pro
         [order.id, order.paypalOrderId, order.packageId, order.amount, order.currency, order.name, order.email, order.contact, order.brief, order.status, order.createdAt, normalizePaymentMode(order.paymentMode)]
       );
     },
+    async createEnquiry(order, buildMessages = () => []) {
+      const client = await pool.connect();
+      try {
+        await client.query('begin');
+        const inserted = await client.query(
+          `insert into orders
+            (id, paypal_order_id, package_id, amount, currency, customer_name, email, contact, brief, status, created_at, payment_mode, updated_at)
+           values ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ENQUIRY',$10,'unknown',now())
+           on conflict (id) do nothing returning *`,
+          [order.id, `enquiry:${order.id}`, order.packageId, order.amount, order.currency, order.name, order.email, order.contact, order.brief, order.createdAt]
+        );
+        const saved = rowToOrder(inserted.rows[0] || (await client.query('select * from orders where id=$1', [order.id])).rows[0]);
+        if (!saved || saved.status !== 'ENQUIRY' || ['name', 'email', 'contact', 'brief', 'packageId'].some(key => saved[key] !== order[key])) {
+          const error = Error('Request reference already used');
+          error.status = 409;
+          throw error;
+        }
+        if (inserted.rows.length) {
+          for (const job of notificationJobs(saved, buildMessages(saved))) {
+            await client.query(
+              'insert into email_notifications (id, order_id, kind, payload) values ($1,$2,$3,$4) on conflict (id) do nothing',
+              [job.id, job.orderId, job.kind, JSON.stringify(job.payload)]
+            );
+          }
+        }
+        await client.query('commit');
+        return saved;
+      } catch (error) {
+        await client.query('rollback').catch(() => {});
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
     async findById(orderId) {
       const result = await pool.query('select * from orders where id=$1 limit 1', [orderId]);
       return rowToOrder(result.rows[0]);
@@ -128,6 +162,7 @@ export function createPostgresStore({ pool: suppliedPool, connectionString = pro
           return null;
         }
         const existing = rowToOrder(current.rows[0]);
+        if (existing.status === 'ENQUIRY') throw Error('An enquiry cannot be captured or marked paid');
         if (existing.status === 'PAID' && existing.captureId === capture.id) {
           await client.query('commit');
           existing.paymentCompletedNow = false;

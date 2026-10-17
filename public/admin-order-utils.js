@@ -11,9 +11,10 @@ export function isTestOrder(order) {
 export function customerOrderStats(orders) {
   const customers = orders.filter(order => !isTestOrder(order));
   return {
-    total: customers.length,
+    total: customers.filter(order => order.status !== 'ENQUIRY').length,
+    enquiries: customers.filter(order => order.status === 'ENQUIRY' && order.fulfillmentStatus !== 'CANCELLED').length,
     paid: customers.filter(order => order.status === 'PAID' && order.paymentMode === 'live').length,
-    waiting: customers.filter(order => order.status !== 'PAID' && order.fulfillmentStatus !== 'CANCELLED').length,
+    waiting: customers.filter(order => order.status !== 'PAID' && order.status !== 'ENQUIRY' && order.fulfillmentStatus !== 'CANCELLED').length,
     active: customers.filter(order => order.status === 'PAID' && order.paymentMode === 'live' &&
       ['IN_PROGRESS', 'WAITING_CUSTOMER'].includes(order.fulfillmentStatus)).length,
     delivered: customers.filter(order => order.fulfillmentStatus === 'DELIVERED').length,
