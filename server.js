@@ -5,7 +5,9 @@ import rateLimit from 'express-rate-limit';
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { Pool } from 'pg';
+import { createPostgresStore } from './postgres-store.js';
+import { normalizePaymentMode, isTestOrder } from './public/admin-order-utils.js';
+import { processEmailOutbox } from './email-outbox.js';
 import { inspectPayPalReceiver } from './paypal-receiver.js';
 
 const app = express();
@@ -27,6 +29,10 @@ const adminLoginLimiter = rateLimit({
   message: { error: 'Too many admin login attempts. Try again later.' }
 });
 app.use('/api', apiLimiter);
+app.use('/api/admin', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 app.get(['/admin', '/admin/'], (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.redirect(302, '/admin.html');
@@ -154,6 +160,8 @@ function normalizeOrder(order) {
   if (!order) return null;
   return {
     ...order,
+    paymentMode: normalizePaymentMode(order.paymentMode),
+    internalTest: order.internalTest === true,
     fulfillmentStatus: fulfillmentStatuses.has(order?.fulfillmentStatus) ? order.fulfillmentStatus : 'NEW',
     adminNotes: clean(order?.adminNotes, 3000),
     updatedAt: order?.updatedAt || order?.paidAt || order?.createdAt || new Date().toISOString()
@@ -171,6 +179,8 @@ function adminOrder(order) {
     contact: order.contact,
     brief: order.brief,
     status: order.status,
+    paymentMode: normalizePaymentMode(order.paymentMode),
+    internalTest: order.internalTest === true,
     fulfillmentStatus: order.fulfillmentStatus || 'NEW',
     adminNotes: order.adminNotes || '',
     createdAt: order.createdAt,
@@ -196,179 +206,10 @@ function customerOrder(order) {
 
 function createStore() {
   if (process.env.DATABASE_URL) return createPostgresStore();
+  if (process.env.RAILWAY_ENVIRONMENT) throw Error('DATABASE_URL is required on Railway; refusing ephemeral order storage');
   return createJsonStore();
 }
 
-function createPostgresStore() {
-  const sslMode = process.env.PGSSLMODE || new URL(process.env.DATABASE_URL).searchParams.get('sslmode');
-  const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: sslMode === 'require' ? { rejectUnauthorized: false } : false
-  });
-
-  async function init() {
-    await pool.query(`
-      create table if not exists orders (
-        id text primary key,
-        paypal_order_id text unique not null,
-        package_id text not null,
-        amount text not null,
-        currency text not null default 'USD',
-        customer_name text not null,
-        email text not null,
-        contact text,
-        brief text not null,
-        status text not null,
-        fulfillment_status text not null default 'NEW',
-        admin_notes text not null default '',
-        capture_id text,
-        created_at timestamptz not null,
-        paid_at timestamptz,
-        updated_at timestamptz not null default now()
-      )
-    `);
-    await pool.query(`
-      create table if not exists payments (
-        capture_id text primary key,
-        order_id text not null references orders(id),
-        paypal_order_id text not null,
-        status text not null,
-        amount text not null,
-        currency text not null default 'USD',
-        created_at timestamptz not null default now()
-      )
-    `);
-    await pool.query(`
-      create table if not exists settings (
-        key text primary key,
-        value text not null,
-        updated_at timestamptz not null default now()
-      )
-    `);
-    await pool.query("alter table orders add column if not exists fulfillment_status text not null default 'NEW'");
-    await pool.query("alter table orders add column if not exists admin_notes text not null default ''");
-    await pool.query('create index if not exists orders_status_created_idx on orders (status, created_at desc)');
-    await pool.query('create index if not exists orders_fulfillment_created_idx on orders (fulfillment_status, created_at desc)');
-    await pool.query('create unique index if not exists orders_capture_id_unique on orders (capture_id) where capture_id is not null');
-    await pool.query('create index if not exists payments_order_created_idx on payments (order_id, created_at desc)');
-  }
-
-  function rowToOrder(row) {
-    if (!row) return null;
-    return {
-      id: row.id,
-      paypalOrderId: row.paypal_order_id,
-      packageId: row.package_id,
-      amount: row.amount,
-      currency: row.currency,
-      name: row.customer_name,
-      email: row.email,
-      contact: row.contact || '',
-      brief: row.brief,
-      status: row.status,
-      fulfillmentStatus: row.fulfillment_status || 'NEW',
-      adminNotes: row.admin_notes || '',
-      captureId: row.capture_id || undefined,
-      createdAt: row.created_at?.toISOString?.() || row.created_at,
-      paidAt: row.paid_at?.toISOString?.() || row.paid_at || undefined,
-      updatedAt: row.updated_at?.toISOString?.() || row.updated_at
-    };
-  }
-
-  return {
-    type: 'postgres',
-    init,
-    async createOrder(order) {
-      await pool.query(
-        `insert into orders
-          (id, paypal_order_id, package_id, amount, currency, customer_name, email, contact, brief, status, created_at, updated_at)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,now())`,
-        [order.id, order.paypalOrderId, order.packageId, order.amount, order.currency, order.name, order.email, order.contact, order.brief, order.status, order.createdAt]
-      );
-    },
-    async findById(orderId) {
-      const result = await pool.query('select * from orders where id=$1 limit 1', [orderId]);
-      return rowToOrder(result.rows[0]);
-    },
-    async findByPayPalOrderId(paypalOrderId) {
-      const result = await pool.query('select * from orders where paypal_order_id=$1 limit 1', [paypalOrderId]);
-      return rowToOrder(result.rows[0]);
-    },
-    async markPaid(orderId, capture) {
-      const client = await pool.connect();
-      try {
-        await client.query('begin');
-        const current = await client.query('select * from orders where id=$1 for update', [orderId]);
-        if (!current.rows[0]) {
-          await client.query('rollback');
-          return null;
-        }
-        const existing = rowToOrder(current.rows[0]);
-        if (existing.status === 'PAID' && existing.captureId === capture.id) {
-          await client.query('commit');
-          existing.paymentCompletedNow = false;
-          return existing;
-        }
-        if (existing.status === 'PAID' && existing.captureId && existing.captureId !== capture.id) {
-          throw Error('Order is already paid with a different capture ID');
-        }
-        await client.query(
-          `insert into payments (capture_id, order_id, paypal_order_id, status, amount, currency)
-           values ($1,$2,$3,$4,$5,$6)
-           on conflict (capture_id) do nothing`,
-          [capture.id, orderId, existing.paypalOrderId, capture.status, capture.amount.value, capture.amount.currency_code]
-        );
-        const result = await client.query(
-          `update orders
-             set status='PAID', capture_id=$2, paid_at=coalesce(paid_at, now()), updated_at=now()
-           where id=$1
-           returning *`,
-          [orderId, capture.id]
-        );
-        await client.query('commit');
-        const order = rowToOrder(result.rows[0]);
-        order.paymentCompletedNow = existing.status !== 'PAID';
-        return order;
-      } catch (error) {
-        await client.query('rollback').catch(() => {});
-        throw error;
-      } finally {
-        client.release();
-      }
-    },
-    async updateManagement(orderId, updates) {
-      const result = await pool.query(
-        `update orders
-           set fulfillment_status=coalesce($2, fulfillment_status),
-               admin_notes=coalesce($3, admin_notes),
-               updated_at=now()
-         where id=$1
-         returning *`,
-        [orderId, updates.fulfillmentStatus ?? null, updates.adminNotes ?? null]
-      );
-      return rowToOrder(result.rows[0]);
-    },
-    async listOrders() {
-      const result = await pool.query('select * from orders order by created_at desc limit 500');
-      return result.rows.map(rowToOrder);
-    },
-    async health() {
-      await pool.query('select 1');
-    },
-    async getSetting(key) {
-      const result = await pool.query('select value from settings where key=$1 limit 1', [key]);
-      return result.rows[0]?.value || '';
-    },
-    async setSetting(key, value) {
-      await pool.query(
-        `insert into settings (key, value, updated_at)
-         values ($1, $2, now())
-         on conflict (key) do update set value=excluded.value, updated_at=now()`,
-        [key, value]
-      );
-    }
-  };
-}
 
 function createJsonStore() {
   const dataDir = path.resolve(process.env.DATA_DIR || './data');
@@ -423,7 +264,7 @@ function createJsonStore() {
     async findByPayPalOrderId(paypalOrderId) {
       return normalizeOrder(orders.find(order => order.paypalOrderId === paypalOrderId) || null);
     },
-    async markPaid(orderId, capture) {
+    async markPaid(orderId, capture, buildMessages, captureMode) {
       const order = orders.find(item => item.id === orderId);
       if (!order) return null;
       const wasAlreadyPaid = order.status === 'PAID';
@@ -431,6 +272,7 @@ function createJsonStore() {
         throw Error('Order is already paid with a different capture ID');
       }
       order.status = 'PAID';
+      if (normalizePaymentMode(order.paymentMode) === 'unknown') order.paymentMode = normalizePaymentMode(captureMode);
       order.captureId = capture.id;
       order.paidAt = order.paidAt || new Date().toISOString();
       order.updatedAt = new Date().toISOString();
@@ -444,6 +286,7 @@ function createJsonStore() {
       if (!order) return null;
       if (updates.fulfillmentStatus) order.fulfillmentStatus = updates.fulfillmentStatus;
       if (typeof updates.adminNotes === 'string') order.adminNotes = updates.adminNotes;
+      if (typeof updates.internalTest === 'boolean') order.internalTest = updates.internalTest;
       order.updatedAt = new Date().toISOString();
       await persist();
       return normalizeOrder(order);
@@ -466,6 +309,9 @@ function createJsonStore() {
 
 const store = createStore();
 await store.init();
+let notificationDrain = null;
+void drainNotifications();
+setInterval(() => { void drainNotifications(); }, 30_000).unref();
 ensurePayPalWebhook()
   .then(webhookId => {
     if (webhookId) console.log(`PayPal webhook ready at ${paypalWebhookPath}`);
@@ -529,9 +375,7 @@ function canSendNotificationTo(email) {
   return emailsConfigured() && validEmail(recipient) && (!resendTestMode() || recipient === admin);
 }
 
-async function sendEmail({ to, subject, text, html, replyTo }) {
-  if (!emailsConfigured() || !validEmail(to)) return false;
-
+function emailPayload({ to, subject, text, html, replyTo }) {
   const payload = {
     from: process.env.EMAIL_FROM,
     to,
@@ -540,21 +384,43 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     html
   };
   if (replyTo && validEmail(replyTo)) payload.reply_to = replyTo;
+  return payload;
+}
 
+async function deliverEmail(payload, idempotencyKey) {
+  if (!emailsConfigured() || !validEmail(payload.to)) throw Error('Email is not configured');
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
+    signal: AbortSignal.timeout(15_000),
     headers: {
       Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {})
     },
     body: JSON.stringify(payload)
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw Error(`Email send failed (${response.status}): ${body.slice(0, 200)}`);
+    throw Error(`Email send failed (${response.status})`);
   }
+  const json = await response.json();
+  if (!json.id) throw Error('Email provider did not return an ID');
+  return json.id;
+}
+
+async function sendEmail(message) {
+  if (!emailsConfigured() || !validEmail(message.to)) return false;
+  await deliverEmail(emailPayload(message));
   return true;
+}
+
+function drainNotifications() {
+  if (store.type !== 'postgres' || !emailsConfigured()) return Promise.resolve();
+  if (notificationDrain) return notificationDrain;
+  notificationDrain = processEmailOutbox({ store, deliver: deliverEmail })
+    .catch(() => console.warn('Payment notification queue needs attention'))
+    .finally(() => { notificationDrain = null; });
+  return notificationDrain;
 }
 
 async function resendApi(pathname, method, body) {
@@ -632,13 +498,15 @@ function orderSummary(order) {
   ].filter(Boolean).join('\n');
 }
 
-async function notifyPaidOrder(order) {
+function paidOrderMessages(order) {
+  if (!emailsConfigured() || isTestOrder(order)) return [];
+  const messages = [];
   const trackUrl = orderUrl(order);
   const admin = adminEmail();
   const customerCanReceive = canSendNotificationTo(order.email);
 
   if (validEmail(admin)) {
-    await sendEmail({
+    messages.push({ kind: 'admin', payload: emailPayload({
       to: admin,
       subject: `طلب مدفوع جديد - ${order.packageId}`,
       replyTo: resendTestMode() ? '' : order.email,
@@ -654,15 +522,14 @@ async function notifyPaidOrder(order) {
           <p><a href="${publicBaseUrl}/admin.html">Open admin dashboard</a></p>
         </div>
       `
-    }).catch(error => console.warn(`Admin order email failed: ${error.message}`));
+    }) });
   }
 
   if (!customerCanReceive) {
-    console.warn('Customer order email skipped: Resend testing sender only allows the verified account email.');
-    return;
+    return messages;
   }
 
-  await sendEmail({
+  messages.push({ kind: 'customer', payload: emailPayload({
     to: order.email,
     subject: 'تم تأكيد طلبك في قلم موشن',
     replyTo: supportEmail,
@@ -686,7 +553,8 @@ async function notifyPaidOrder(order) {
         <p>سنراجع التفاصيل ونتواصل معك إذا احتجنا أي معلومات إضافية.</p>
       </div>
     `
-  }).catch(error => console.warn(`Customer order email failed: ${error.message}`));
+  }) });
+  return messages;
 }
 
 async function configuredPayPalWebhookId() {
@@ -784,9 +652,13 @@ function captureFromWebhook(resource, record) {
 }
 
 async function finishPaidOrder(order, capture) {
-  const paidOrder = await store.markPaid(order.id, capture);
-  if (paidOrder?.paymentCompletedNow) {
-    await notifyPaidOrder(paidOrder);
+  const paidOrder = await store.markPaid(order.id, capture, paidOrderMessages, mode);
+  if (store.type === 'postgres') {
+    void drainNotifications();
+  } else if (paidOrder?.paymentCompletedNow) {
+    for (const message of paidOrderMessages(paidOrder)) {
+      await deliverEmail(message.payload).catch(() => console.warn('Payment notification could not be sent'));
+    }
   }
   return paidOrder;
 }
@@ -868,6 +740,8 @@ app.post('/api/orders', async (req, res) => {
       contact,
       brief,
       status: 'AWAITING_PAYMENT',
+      paymentMode: mode,
+      internalTest: false,
       fulfillmentStatus: 'NEW',
       adminNotes: '',
       createdAt: new Date().toISOString()
@@ -886,6 +760,9 @@ app.post('/api/orders/:orderRef/capture', async (req, res) => {
   const record = await store.findByPayPalOrderId(orderRef) || await store.findById(orderRef);
   if (!record) return fail(res, 404, 'Order not found');
   if (record.status === 'PAID') return res.json({ status: 'PAID', orderId: record.id, statusUrl: orderUrl(record) });
+  if (normalizePaymentMode(record.paymentMode) !== 'unknown' && record.paymentMode !== mode) {
+    return fail(res, 409, 'This order belongs to a different PayPal environment. Contact support; do not pay it again.');
+  }
 
   try {
     // PayPal is authoritative. Never trust a client-side success redirect alone.
@@ -997,6 +874,15 @@ app.get('/api/admin/orders', async (req, res) => {
   res.set('Cache-Control', 'no-store').json(orders.map(adminOrder));
 });
 
+app.get('/api/admin/notifications', async (req, res) => {
+  if (!requireAdmin(req, res)) return;
+  try {
+    res.json(store.type === 'postgres' ? await store.notificationSummary() : { persistent: false, accepted: 0, pending: 0, failed: 0 });
+  } catch {
+    fail(res, 503, 'Could not read notification status');
+  }
+});
+
 async function adminSessionPayload() {
   return {
     authenticated: true,
@@ -1105,6 +991,10 @@ app.patch('/api/admin/orders/:id', async (req, res) => {
   if (!requireAdmin(req, res)) return;
 
   const updates = {};
+  if (Object.hasOwn(req.body || {}, 'internalTest')) {
+    if (typeof req.body.internalTest !== 'boolean') return fail(res, 400, 'Invalid test-order flag');
+    updates.internalTest = req.body.internalTest;
+  }
   if (Object.hasOwn(req.body || {}, 'fulfillmentStatus')) {
     const fulfillmentStatus = clean(req.body.fulfillmentStatus, 40).toUpperCase();
     if (!fulfillmentStatuses.has(fulfillmentStatus)) return fail(res, 400, 'Invalid fulfillment status');

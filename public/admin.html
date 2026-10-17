@@ -13,7 +13,7 @@
     header{display:flex;justify-content:space-between;gap:18px;align-items:center;border-bottom:1px solid rgba(255,225,185,.16);padding-bottom:20px;margin-bottom:28px}.brand{font-weight:800;color:var(--gold);font-size:24px}.muted{color:var(--muted);line-height:1.7}
     .button{background:var(--gold);color:#171411;border:0;padding:13px 18px;border-radius:12px;font-weight:800;cursor:pointer;display:inline-block}.button.secondary{background:#2a2827;color:#fff0d8;border:1px solid var(--line)}
     .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:20px}
-    label{display:block;margin:0 0 8px}input,select,textarea{width:100%;padding:14px;border-radius:10px;background:#111316;color:white;border:1px solid #686159;font:inherit}input{direction:ltr;text-align:left}select{min-width:180px}textarea{min-height:84px;resize:vertical;margin-top:10px}.login-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}
+    label{display:block;margin:0 0 8px}input,select,textarea{width:100%;padding:14px;border-radius:10px;background:#111316;color:white;border:1px solid #686159;font:inherit}input{direction:ltr;text-align:left}input[type=checkbox]{width:auto;margin-left:8px}.test-toggle{font-size:13px;margin-top:12px}select{min-width:180px}textarea{min-height:84px;resize:vertical;margin-top:10px}.login-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}
     .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}.stats{display:flex;gap:10px;flex-wrap:wrap}.stat{background:#1c1c1b;border:1px solid #4d443d;border-radius:999px;padding:8px 13px;color:#ead9bd;font-size:13px}.hidden{display:none!important}.session-ok{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}.session-ok strong{color:var(--gold)}
     table{width:100%;border-collapse:separate;border-spacing:0 10px}th{color:#d8bd8f;text-align:right;font-size:13px;font-weight:700;padding:0 12px}td{background:#20201f;border-top:1px solid #4d443d;border-bottom:1px solid #4d443d;padding:14px 12px;vertical-align:top;line-height:1.6}td:first-child{border-right:1px solid #4d443d;border-radius:0 12px 12px 0}td:last-child{border-left:1px solid #4d443d;border-radius:12px 0 0 12px}.ltr{direction:ltr;text-align:left}.status{display:inline-block;border-radius:999px;padding:4px 10px;font-weight:800;font-size:12px}.paid{background:#254531;color:#b9efc6}.waiting{background:#4a3726;color:#ffd098}.progress{background:#25374b;color:#c6dfff}.delivered{background:#284438;color:#bff0cf}.cancelled{background:#482b2b;color:#ffc9c9}.brief{max-width:320px;white-space:pre-wrap}.order-id{display:block;margin-top:8px;font-size:11px;color:#aaa}.management{min-width:230px}.save{margin-top:10px}.empty{display:none;text-align:center;padding:40px;color:var(--muted)}#message{color:#f2cd95;margin-top:12px;line-height:1.7}
     @media(max-width:800px){.login-row{grid-template-columns:1fr}table,thead,tbody,tr,th,td{display:block}thead{display:none}tr{background:#20201f;border:1px solid #4d443d;border-radius:12px;margin-bottom:14px;padding:8px}td{border:0!important;border-radius:0!important;background:transparent;padding:8px 10px}td:before{content:attr(data-label);display:block;color:#d8bd8f;font-size:12px;margin-bottom:3px}.brief{max-width:none}}
@@ -49,22 +49,32 @@
     <section class="panel">
       <div class="toolbar">
         <div class="stats">
-          <span class="stat" id="total">0 طلب</span>
-          <span class="stat" id="paid">0 مدفوع</span>
+          <span class="stat" id="total">0 طلب عميل</span>
+          <span class="stat" id="paid">0 مدفوع حقيقي</span>
           <span class="stat" id="waiting">0 ينتظر الدفع</span>
           <span class="stat" id="active">0 قيد التنفيذ</span>
           <span class="stat" id="delivered">0 تم تسليمه</span>
+          <span class="stat" id="test-orders">0 طلب اختبار</span>
+          <span class="stat hidden" id="unverified-paid"></span>
           <span class="stat" id="email-config">الإيميل: غير مفعّل</span>
           <span class="stat" id="webhook-config">ويبهوك بايبال: غير مفعّل</span>
+          <span class="stat" id="notification-config">الإشعارات الجديدة: لم يتم التحقق</span>
         </div>
         <div>
           <button id="refresh" class="button secondary" type="button">تحديث</button>
           <button id="setup-webhook" class="button secondary" type="button">تهيئة ويبهوك بايبال</button>
           <button id="test-email" class="button secondary" type="button">اختبار الإيميل</button>
-          <button id="export" class="button secondary" type="button">تحميل CSV</button>
+          <button id="export" class="button secondary" type="button">تحميل CSV للطلبات الظاهرة</button>
           <button id="logout" class="button secondary" type="button">خروج</button>
         </div>
       </div>
+      <p class="muted">الإحصاءات تخص طلبات العملاء. طلبات Sandbox والاختبارات الداخلية والعناوين التجريبية لا تُحتسب مبيعات. الطلبات القديمة ذات البيئة غير الموثقة لا تُحتسب مدفوعات حقيقية.</p>
+      <label for="order-filter">عرض الطلبات</label>
+      <select id="order-filter">
+        <option value="customer">طلبات العملاء</option>
+        <option value="test">طلبات الاختبار</option>
+        <option value="all">كل الطلبات</option>
+      </select>
     </section>
 
     <section class="panel hidden" id="paypal-account-panel">
@@ -93,7 +103,8 @@
     </section>
   </div>
 
-  <script>
+  <script type="module">
+    import { isTestOrder, customerOrderStats, csvCell } from './admin-order-utils.js';
     const $ = id => document.getElementById(id);
     let currentOrders = [];
     let sessionInfo = { emailConfigured: false, webhookConfigured: false };
@@ -124,10 +135,6 @@
       return value ? new Date(value).toLocaleString() : '-';
     }
 
-    function escapeCsv(value) {
-      return `"${String(value ?? '').replaceAll('"', '""')}"`;
-    }
-
     function escapeHtml(value) {
       return String(value ?? '')
         .replaceAll('&', '&amp;')
@@ -149,7 +156,11 @@
       $('logged-in').classList.toggle('hidden', !isAuthenticated);
       $('paypal-account-panel').classList.toggle('hidden', !isAuthenticated);
       $('check-paypal-account').disabled = !isAuthenticated;
-      if (!isAuthenticated) $('paypal-account-result').textContent = 'لم يتم التحقق بعد.';
+      if (!isAuthenticated) {
+        $('paypal-account-result').textContent = 'لم يتم التحقق بعد.';
+        $('notification-config').textContent = 'الإشعارات الجديدة: لم يتم التحقق';
+        render([]);
+      }
       if (isAuthenticated) $('token').value = '';
       const emailState = !sessionInfo.emailConfigured ? 'غير مفعّل' : sessionInfo.emailTestMode ? 'اختبار فقط' : 'مفعّل';
       $('email-config').textContent = `الإيميل: ${emailState}`;
@@ -163,21 +174,33 @@
       return `
         <select class="fulfillment" data-id="${escapeHtml(order.id)}">${options}</select>
         <textarea class="notes" data-id="${escapeHtml(order.id)}" placeholder="ملاحظات داخلية لا تظهر للعميل">${escapeHtml(order.adminNotes || '')}</textarea>
+        <label class="test-toggle"><input class="internal-test" type="checkbox" ${order.internalTest ? 'checked' : ''}>اختبار داخلي (لا يُحتسب مبيعا)</label>
         <button class="button secondary save" type="button" data-id="${escapeHtml(order.id)}">حفظ</button>
       `;
     }
 
+    function visibleOrders() {
+      const filter = $('order-filter').value;
+      return currentOrders.filter(order => filter === 'all' || (filter === 'test' ? isTestOrder(order) : !isTestOrder(order)));
+    }
+
     function render(orders) {
       currentOrders = orders;
-      $('total').textContent = `${orders.length} طلب`;
-      $('paid').textContent = `${orders.filter(order => order.status === 'PAID').length} مدفوع`;
-      $('waiting').textContent = `${orders.filter(order => order.status !== 'PAID').length} ينتظر الدفع`;
-      $('active').textContent = `${orders.filter(order => ['IN_PROGRESS', 'WAITING_CUSTOMER'].includes(order.fulfillmentStatus)).length} قيد التنفيذ`;
-      $('delivered').textContent = `${orders.filter(order => order.fulfillmentStatus === 'DELIVERED').length} تم تسليمه`;
-      $('empty').style.display = orders.length ? 'none' : 'block';
-      $('orders').innerHTML = orders.map(order => `
+      const stats = customerOrderStats(orders);
+      $('total').textContent = `${stats.total} طلب عميل`;
+      $('paid').textContent = `${stats.paid} مدفوع حقيقي`;
+      $('waiting').textContent = `${stats.waiting} ينتظر الدفع`;
+      $('active').textContent = `${stats.active} قيد التنفيذ`;
+      $('delivered').textContent = `${stats.delivered} تم تسليمه`;
+      $('test-orders').textContent = `${stats.tests} طلب اختبار`;
+      $('unverified-paid').textContent = `${stats.unverifiedPaid} مدفوع قديم يحتاج توثيق البيئة`;
+      $('unverified-paid').classList.toggle('hidden', stats.unverifiedPaid === 0);
+      const visible = visibleOrders();
+      $('empty').style.display = visible.length ? 'none' : 'block';
+      $('empty').textContent = 'لا توجد طلبات في هذا العرض.';
+      $('orders').innerHTML = visible.map(order => `
         <tr data-order-id="${escapeHtml(order.id)}">
-          <td data-label="الدفع"><span class="status ${order.status === 'PAID' ? 'paid' : 'waiting'}">${paymentLabel(order.status)}</span><span class="order-id ltr">${escapeHtml(order.id)}</span></td>
+          <td data-label="الدفع"><span class="status ${order.status === 'PAID' ? 'paid' : 'waiting'}">${paymentLabel(order.status)}</span><br><small>${order.paymentMode === 'live' ? 'Live' : order.paymentMode === 'sandbox' ? 'Sandbox' : 'بيئة غير موثّقة'}</small>${isTestOrder(order) ? '<br><span class="status waiting">طلب اختبار</span>' : ''}<span class="order-id ltr">${escapeHtml(order.id)}</span></td>
           <td data-label="التنفيذ" class="management"><span class="status ${fulfillmentClass(order.fulfillmentStatus)}">${fulfillmentLabel(order.fulfillmentStatus)}</span>${renderManagement(order)}</td>
           <td data-label="الباقة"><strong>${escapeHtml(order.packageId)}</strong><br><span class="muted ltr">${escapeHtml(order.amount)} ${escapeHtml(order.currency || 'USD')}</span></td>
           <td data-label="العميل"><strong>${escapeHtml(order.name)}</strong><br><span class="muted ltr">${escapeHtml(order.email)}</span></td>
@@ -195,10 +218,24 @@
         const json = await response.json();
         if (!response.ok) throw Error(json.error || 'تعذر تحميل الطلبات');
         render(json);
+        await loadNotificationStatus();
         $('message').textContent = 'تم تحميل الطلبات بنجاح.';
       } catch (error) {
         if (error.message === 'Unauthorized') setAuthenticated(false);
         $('message').textContent = error.message;
+      }
+    }
+
+    async function loadNotificationStatus() {
+      try {
+        const response = await fetch('/api/admin/notifications', { credentials: 'same-origin', cache: 'no-store' });
+        if (!response.ok) throw Error('Notification status unavailable');
+        const status = await response.json();
+        $('notification-config').textContent = status.persistent
+          ? `الإشعارات الجديدة: ${status.pending} قيد الإرسال، ${status.failed} تحتاج مراجعة`
+          : 'الإشعارات: تخزين محلي للتطوير';
+      } catch {
+        $('notification-config').textContent = 'الإشعارات الجديدة: تعذّر التحقق';
       }
     }
 
@@ -295,6 +332,7 @@
       const row = button.closest('tr');
       const fulfillmentStatus = row.querySelector('.fulfillment').value;
       const adminNotes = row.querySelector('.notes').value;
+      const internalTest = row.querySelector('.internal-test').checked;
       button.disabled = true;
       $('message').textContent = 'جار حفظ التحديث...';
       try {
@@ -302,7 +340,7 @@
           method: 'PATCH',
           headers: jsonHeaders(),
           credentials: 'same-origin',
-          body: JSON.stringify({ fulfillmentStatus, adminNotes })
+          body: JSON.stringify({ fulfillmentStatus, adminNotes, internalTest })
         });
         const json = await response.json();
         if (!response.ok) throw Error(json.error || 'تعذر حفظ الطلب');
@@ -316,6 +354,7 @@
 
     $('login').addEventListener('click', login);
     $('refresh').addEventListener('click', loadOrders);
+    $('order-filter').addEventListener('change', () => render(currentOrders));
     $('setup-webhook').addEventListener('click', setupWebhook);
     $('test-email').addEventListener('click', testEmail);
     $('check-paypal-account').addEventListener('click', checkPayPalAccount);
@@ -327,8 +366,8 @@
       if (event.target.classList.contains('save')) saveOrder(event.target);
     });
     $('export').addEventListener('click', () => {
-      const header = ['id','status','fulfillmentStatus','packageId','amount','currency','name','email','contact','brief','adminNotes','createdAt','paidAt','updatedAt','captureId'];
-      const rows = [header.join(','), ...currentOrders.map(order => header.map(key => escapeCsv(order[key])).join(','))];
+      const header = ['id','status','paymentMode','internalTest','fulfillmentStatus','packageId','amount','currency','name','email','contact','brief','adminNotes','createdAt','paidAt','updatedAt','captureId'];
+      const rows = [header.join(','), ...visibleOrders().map(order => header.map(key => csvCell(order[key])).join(','))];
       const url = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' }));
       const link = document.createElement('a');
       link.href = url;
