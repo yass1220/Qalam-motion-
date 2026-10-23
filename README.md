@@ -31,14 +31,28 @@ foundation.
 ```bash
 pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
 pnpm start --port 3155
 ```
 
-The initial page is English and marked `noindex`. The next localization step adds
-Arabic, French and Spanish, with English as the fallback and browser language
-detection on initial visits. Explicit locale URLs and manual choices must remain
-stable.
+With the production preview running, `pnpm test:http` checks the four localized HTML
+pages, root negotiation and translated 404 responses. Override `I18N_TEST_BASE_URL`
+when using another local port. CI starts an isolated preview after the build and runs
+this HTTP matrix in addition to the six catalog/routing tests.
+
+The preview homepage is available at `/en`, `/ar`, `/fr` and `/es`, and remains
+`noindex` until launch content and SEO are ready. The root negotiates a language:
+explicit URL first, saved `NEXT_LOCALE` preference second, browser language third,
+English fallback last. A manual selection is remembered for one year. Arabic uses
+RTL; other languages use LTR. Unknown pages return a translated 404.
+
+`next-intl` provides routing and typed translation keys. The `[locale]` root layout
+and `next/root-params` keep the four homepages prerendered. Catalog parity and
+negotiation tests run with `pnpm test`; future forms must add their own translated
+validation messages. Language links preserve the route, query and fragment when
+activated. Slugs remain shared in this foundation; translated slugs require a
+separate page/content decision before published URLs are introduced.
 
 Legacy order, payment and administration workflows have not been migrated yet. Their
 reference implementation and regression scenarios remain at commit
@@ -52,5 +66,5 @@ Samy approved this root-level structure on 2026-10-23. Use this application and
 no `apps/web/`, no workspace wrapper, and new application code in strict TypeScript.
 Issue #8 covers this foundation. Runtime form validation belongs to #13, UI primitives
 to #15 and migration/regression coverage to #18. The initial CI runs frozen install,
-lint, strict typecheck and production build; it does not claim that legacy tests run
-in this new application yet. Next work starts with locale routing in #9.
+lint, strict typecheck and production build. Issue #9 adds catalog/routing tests;
+legacy business tests are not yet ported. Full public pages remain in #15.
