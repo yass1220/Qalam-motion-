@@ -1,4 +1,0 @@
-User-agent: *
-Disallow: /admin.html
-Disallow: /status.html
-Disallow: /api/

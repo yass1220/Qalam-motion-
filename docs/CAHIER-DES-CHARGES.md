@@ -12,9 +12,12 @@ The audited homepage is already substantive static HTML served by Express; it is
 ## 2. Confirmed requirements
 
 - Next.js 16 App Router and strict TypeScript.
+- Repository convention confirmed by Samy: no `src/` directory. Place the App Router directly under the Next.js application root and write new application code in strict TypeScript. Use TypeScript tooling configuration where supported, or declarative JSON rather than JavaScript.
+- Layout clarification confirmed by Samy: the repository working tree is the new Next.js application itself, with `app/` at its root and this specification under `docs/`. Do not introduce `apps/web/`, a workspace wrapper or legacy Express files into this application. Legacy business code and its 19 regression scenarios remain reference material on `dev` until their corresponding migration work is implemented; removing them from the new foundation is not a production cutover or permission to discard business records.
 - Better Auth for authentication; authorization remains enforced server-side.
 - Multiple public pages with indexable, pre-rendered content.
 - Public content available in English (`en`), Arabic (`ar`), French (`fr`) and Spanish (`es`).
+- Samy's clarification on 2026-10-23: English is the base/fallback language. On an initial visit without an explicit locale or previous language selection, negotiate a supported locale from the browser language (including Arabic phones). Preserve explicit locale URLs and subsequent language selections. Initialize the Next.js/TypeScript foundation before implementing locale detection.
 - Arabic RTL; English/French/Spanish LTR.
 - Public informational pages rendered ahead of requests and served from cache/static output rather than regenerated for each visitor.
 - Preserve existing payment/order data and integrity controls.
