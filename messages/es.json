@@ -1,0 +1,17 @@
+{
+  "Home": {
+    "title": "Un nuevo capítulo toma forma.",
+    "description": "Estamos preparando el próximo sitio de Qalam Motion. Esta vista previa de desarrollo establece la base de nuestra experiencia multilingüe."
+  },
+  "Navigation": {
+    "language": "Elegir idioma",
+    "home": "Inicio"
+  },
+  "Metadata": {
+    "description": "Estamos preparando el próximo sitio de Qalam Motion."
+  },
+  "NotFound": {
+    "title": "Página no encontrada",
+    "description": "Esta página no existe. Vuelve al inicio para continuar."
+  }
+}

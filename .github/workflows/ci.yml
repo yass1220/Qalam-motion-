@@ -23,4 +23,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm test
       - run: pnpm build
+      - name: Verify localized production routes
+        run: |
+          pnpm start --port 3155 --hostname 127.0.0.1 > "$RUNNER_TEMP/qalam-i18n.log" 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3155/en > /dev/null; then break; fi
+            sleep 1
+          done
+          I18N_TEST_BASE_URL=http://127.0.0.1:3155 pnpm test:http

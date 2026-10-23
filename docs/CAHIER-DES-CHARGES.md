@@ -70,7 +70,9 @@ Separate dynamic areas: order status, payment return/cancel, sign-in and protect
 
 ## 6. Internationalization requirements
 
-- Adopt a maintained App Router-compatible internationalization solution; `next-intl` is a candidate, not a confirmed selection.
+Implementation contract for the initial homepage (issue #9): `next-intl`, always-prefixed `/en`, `/ar`, `/fr`, `/es` URLs, shared slugs until page inventory is implemented, and English fallback. Negotiate only unprefixed visits, preferring the stored language choice over browser language. Explicit locale URLs always win. API/framework/assets stay outside the locale proxy. No new indexed page, canonical production domain or production redirect mapping is introduced by this preview; these remain in #15/#17. Future forms and emails must add complete messages with their respective features.
+
+- Use `next-intl` for App Router-compatible internationalization, selected for the routing and typed message foundation in issue #9.
 - Publish complete approved translations for the four locales: content, navigation, forms, validation, accessibility labels, metadata, error messages and legal text.
 - Human review of commercial/religious wording and legal translations; no invented promises or pricing changes.
 - Each locale has its own indexable URL, self-referencing canonical and reciprocal `hreflang` references to actual equivalents. Define a deliberate `x-default` destination.

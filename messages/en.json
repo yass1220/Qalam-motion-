@@ -1,0 +1,17 @@
+{
+  "Home": {
+    "title": "A new chapter is taking shape.",
+    "description": "We are preparing the next Qalam Motion website. This development preview establishes the foundation for our multilingual experience."
+  },
+  "Navigation": {
+    "language": "Choose your language",
+    "home": "Home"
+  },
+  "Metadata": {
+    "description": "The next Qalam Motion website is being prepared."
+  },
+  "NotFound": {
+    "title": "Page not found",
+    "description": "This page does not exist. Return to the homepage to continue."
+  }
+}
