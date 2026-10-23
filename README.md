@@ -1,54 +1,56 @@
 # Qalam Motion
 
-Arabic landing page and checkout flow for Qalam Motion, a hand-drawn video service.
+Next.js 16 App Router, strict TypeScript, React and Tailwind CSS v4.
 
-## What It Includes
+## Structure
 
-- Express server with PayPal Checkout order creation and capture.
-- PostgreSQL order storage when `DATABASE_URL` is set.
-- Local JSON order storage fallback for development.
-- Public Arabic landing page in `public/index.html`.
-- Admin orders page at `/admin.html`, protected by `ADMIN_TOKEN`.
-- Customer order tracking page at `/status.html`.
-- Optional email notifications through Resend.
-- PayPal webhook setup for capture confirmation.
-- Health check at `/health`.
-
-## Local Setup
-
-```bash
-npm install
-cp .env.example .env
-npm run dev
+```text
+app/                      Application routes, layout and styles
+docs/CAHIER-DES-CHARGES.md Product and technical specification
 ```
 
-Open `http://localhost:3000`.
+The application lives directly at the repository root, without `src/` or a workspace
+wrapper. The `@/*` alias resolves from this root. Executable configuration uses
+TypeScript; PostCSS uses declarative JSON.
 
-## Required Environment Variables
+## Development
 
-| Variable | Purpose |
-| --- | --- |
-| `PAYPAL_MODE` | `sandbox` for testing or `live` for real payments. |
-| `PAYPAL_CLIENT_ID` | PayPal REST app client ID. |
-| `PAYPAL_CLIENT_SECRET` | PayPal REST app secret. |
-| `PUBLIC_BASE_URL` | Public site URL, for example the Railway app URL. |
-| `ADMIN_TOKEN` | Long private token used to open `/admin.html`. |
-| `DATABASE_URL` | Optional PostgreSQL URL. Railway Postgres can provide this automatically. |
-| `PGSSLMODE` | Optional. Use `require` only when the database provider requires SSL. |
-| `RESEND_API_KEY` | Optional. Enables order confirmation emails when set with `EMAIL_FROM`. |
-| `EMAIL_FROM` | Optional sender address for customer/admin order emails. |
-| `ADMIN_EMAIL` | Optional destination for admin order notifications. |
-| `SUPPORT_EMAIL` | Optional reply-to/support address shown in customer emails. |
-| `PAYPAL_WEBHOOK_ID` | Optional. The app can auto-create and store a Sandbox webhook; set this only if managing it manually. |
+Use Node.js 22.13 or later and pnpm 10.28.2.
 
-## Railway Notes
+```bash
+pnpm install --frozen-lockfile
+pnpm dev --port 3155
+```
 
-1. Use the existing Railway project and service.
-2. Attach or keep the existing PostgreSQL service for durable orders.
-3. Keep the existing environment variables; do not commit secret values to GitHub.
-4. Set `PUBLIC_BASE_URL` to the Railway public domain.
-5. Keep `PAYPAL_MODE=sandbox` until testing is complete.
-6. Switch to `PAYPAL_MODE=live` only after adding live PayPal credentials and approving the change.
-7. Add Resend email variables only when you are ready for customer emails; the checkout flow works without them.
+Port 3155 belongs to the `next-foundation` sandbox. Use the assigned port when working
+in another sandbox. No environment variables or database are required for this initial
+foundation.
 
-The app still works without PostgreSQL, but local JSON storage is not recommended for production because platform filesystems can be temporary.
+## Validation
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm build
+pnpm start --port 3155
+```
+
+The initial page is English and marked `noindex`. The next localization step adds
+Arabic, French and Spanish, with English as the fallback and browser language
+detection on initial visits. Explicit locale URLs and manual choices must remain
+stable.
+
+Legacy order, payment and administration workflows have not been migrated yet. Their
+reference implementation and regression scenarios remain at commit
+`981706e736d884f7d9769c848ed89630567a4144` in Git history. This foundation does not replace the running production service. Implement
+and validate each domain before any separately approved production migration.
+
+## Validated development baseline
+
+Samy approved this root-level structure on 2026-10-23. Use this application and
+`docs/CAHIER-DES-CHARGES.md` as the starting point for subsequent issues: no `src/`,
+no `apps/web/`, no workspace wrapper, and new application code in strict TypeScript.
+Issue #8 covers this foundation. Runtime form validation belongs to #13, UI primitives
+to #15 and migration/regression coverage to #18. The initial CI runs frozen install,
+lint, strict typecheck and production build; it does not claim that legacy tests run
+in this new application yet. Next work starts with locale routing in #9.

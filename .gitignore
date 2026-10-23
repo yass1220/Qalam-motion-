@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 node_modules/
-data/
-npm-debug.log*
+.next/
+*.tsbuildinfo
