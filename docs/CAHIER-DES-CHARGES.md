@@ -49,7 +49,9 @@ Authentication, administration, personal order tracking and payment mutations re
 - Production build evidence identifies marketing routes as prerendered; hosting tests verify caching and intentional invalidation.
 - Private information is never included in generated public HTML or reused between users.
 
-## 5. Proposed information architecture — pending approval
+## 5. Public information architecture
+
+**Implementation decision confirmed by Samy on 2026-10-23 (issue #15):** implement home, services overview, process, pricing, FAQ, studio and contact in en/ar/fr/es. Retain and adapt the historical parchment/olive design. Portfolio and policies remain deferred until media rights and wording are validated. This approval covers the inventory and design direction, not final approval of translations, commercial/religious wording or release. Use the existing shared slugs for this implementation; production URL/SEO approval remains in #17. Contact provides the existing studio email while the enquiry form awaits its #13 contract; these informational pages do not take payment or create orders.
 
 Use stable locale-prefixed URLs, for example `/en/`, `/ar/`, `/fr/`, `/es/`. Localized slugs versus shared slugs require one consistent decision before implementation.
 
@@ -66,7 +68,7 @@ Suggested page families:
 
 Separate dynamic areas: order status, payment return/cancel, sign-in and protected administration. A customer account portal, blog, CMS, payment-provider expansion or automated video generation are not included unless separately approved.
 
-**Open decision:** approve the exact page inventory and useful content for each locale. Do not mass-generate thin pages solely to target search terms. SEO performance or rankings cannot be guaranteed by page count or framework choice.
+**Remaining decisions:** approve final content in each locale and the deferred portfolio/policy inventory. The seven-page implementation inventory is confirmed above. Do not mass-generate thin pages solely to target search terms. SEO performance or rankings cannot be guaranteed by page count or framework choice.
 
 ## 6. Internationalization requirements
 
@@ -152,7 +154,7 @@ The existing `NEXT16-BETTER-AUTH-ISSUES.md` is the technical starting backlog. E
 
 ## 11. Decisions still needed
 
-- Exact public page inventory and launch content in each locale.
+- Final launch content in each locale and the deferred portfolio/policy inventory; the seven-page implementation inventory is approved in §5.
 - Main audience, preferred root/default language and canonical domain.
 - Preserve/refine current design versus a broader redesign.
 - Who supplies and approves translations and portfolio permissions.
