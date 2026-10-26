@@ -1,0 +1,27 @@
+[
+  {
+    "source": "Stand_for_Justice_56s_Reel.mp4",
+    "timestamp_seconds": 29,
+    "asset": "film-frames/stand-for-justice.webp"
+  },
+  {
+    "source": "Do_Not_Ridicule_56s_Reel.mp4",
+    "timestamp_seconds": 12,
+    "asset": "film-frames/do-not-ridicule.webp"
+  },
+  {
+    "source": "Hearts_That_See_56s_Reel.mp4",
+    "timestamp_seconds": 29,
+    "asset": "film-frames/hearts-that-see.webp"
+  },
+  {
+    "source": "Through_Their_Doors_56s_Reel.mp4",
+    "timestamp_seconds": 43,
+    "asset": "film-frames/through-their-doors.webp"
+  },
+  {
+    "source": "For_Those_Who_Understand_56s_Reel.mp4",
+    "timestamp_seconds": 43,
+    "asset": "film-frames/for-those-who-understand.webp"
+  }
+]
