@@ -1,14 +1,178 @@
 {
   "Home": {
-    "title": "A new chapter is taking shape.",
-    "description": "We are preparing the next Qalam Motion website. This development preview establishes the foundation for our multilingual experience."
+    "title": "Stories drawn with care, brought to life.",
+    "description": "Qalam Motion creates animated stories in a pen-and-watercolour style. Share your idea first: we discuss the scope and delivery date before production and payment."
   },
   "Navigation": {
     "language": "Choose your language",
-    "home": "Home"
+    "home": "Home",
+    "services": "Services",
+    "process": "Our process",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "studio": "The studio",
+    "contact": "Contact",
+    "main": "Main navigation",
+    "footer": "Useful links"
   },
   "Metadata": {
-    "description": "The next Qalam Motion website is being prepared."
+    "description": "Drawn and animated stories by Qalam Motion. Explore our approach, video packages and production process."
+  },
+  "Site": {
+    "tagline": "A studio for drawn stories",
+    "skip": "Skip to content",
+    "cta": "Tell us your idea",
+    "servicesLink": "Explore our services",
+    "pricingLink": "Compare video packages",
+    "processLink": "Understand the process",
+    "moreQuestions": "Have a question about your own project? Describe what you need and we can discuss the details before you commit.",
+    "contactTitle": "What story would you like to tell?",
+    "contactBody": "A single idea, a longer story or an educational series: start with a conversation, without payment or commitment."
+  },
+  "Pages": {
+    "services": {
+      "title": "Give your idea a drawn form.",
+      "description": "Our videos combine illustrated scenes, considered movement and Arabic text when needed. The starting point is the message you want to share and the people you want to reach."
+    },
+    "process": {
+      "title": "An idea first. A shared plan next.",
+      "description": "You do not need a finished script to start a conversation. We discuss the story, format, voice and delivery date together, so the production scope is clear before payment."
+    },
+    "pricing": {
+      "title": "Choose the space your story needs.",
+      "description": "Two video packages, with prices in US dollars. Both include the pen-and-watercolour style, vertical delivery and one revision within the agreed scope. Discuss your idea before choosing."
+    },
+    "faq": {
+      "title": "Clear answers before you begin.",
+      "description": "What is included, when production starts and how to prepare your request. These answers describe our existing video packages; specific requests are discussed before payment."
+    },
+    "studio": {
+      "title": "A quiet approach to moving stories.",
+      "description": "Qalam Motion is a studio for illustrated, animated stories. Pen strokes, watercolour landscapes and measured movement give the message room to unfold."
+    },
+    "contact": {
+      "title": "Let’s start with your idea.",
+      "description": "Tell us what you want to communicate, who it is for and how you imagine the video. The first conversation is free and does not create a paid order."
+    }
+  },
+  "Services": {
+    "title": "Movement in service of the story",
+    "intro": "One visual approach, adapted to the message. We agree on the content and format before starting production.",
+    "items": {
+      "stories": {
+        "title": "Illustrated stories",
+        "body": "Build a short narrative around an idea, a scene or a meaningful message. Illustrated settings and gentle motion guide the viewer through the story, with Arabic text where it supports understanding."
+      },
+      "education": {
+        "title": "Educational content",
+        "body": "Present an explanation or a lesson through a drawn sequence. Tell us about the audience, the references and the key message so we can discuss the right level of detail and length."
+      },
+      "custom": {
+        "title": "Longer projects",
+        "body": "For a longer story, content for an institute or an educational series, contact us first. Scope, format and price need a specific agreement rather than an assumption based on the standard packages."
+      }
+    },
+    "scope": "Standard packages are vertical 9:16 videos in 1080 × 1920. Arabic voiceover is included on request. Horizontal formats and English translation require a separate agreement."
+  },
+  "Process": {
+    "title": "From the first message to delivery",
+    "intro": "A custom production, with a conversation before any payment. The video is prepared under our supervision rather than generated instantly.",
+    "steps": {
+      "idea": {
+        "title": "Share the idea",
+        "body": "Describe the story, its audience and its purpose. Add references and any visual or voice preferences. This initial enquiry is free and carries no commitment."
+      },
+      "agreement": {
+        "title": "Agree on the details",
+        "body": "We review your request and discuss the scope, script, format and delivery date. Specific recordings, recitations or additional formats are checked before payment."
+      },
+      "production": {
+        "title": "Prepare the video",
+        "body": "Production starts after agreement and confirmation of payment. The illustrations, movement and any requested Arabic voiceover follow the agreed direction. No music is added."
+      },
+      "delivery": {
+        "title": "Receive and review",
+        "body": "The finished video is delivered digitally. Each package includes one revision within the agreed idea; use the email conversation to describe your feedback."
+      }
+    },
+    "timing": "Delivery timing depends on the agreed project. We confirm a date before production; payment does not provide an instant video or an automatically guaranteed turnaround."
+  },
+  "Pricing": {
+    "title": "Two lengths, the same care",
+    "intro": "A minimum of 40 seconds. All prices are in USD, per video; no currency conversion is offered here.",
+    "short": {
+      "name": "Drawn Story",
+      "purpose": "Room for one focused idea."
+    },
+    "signature": {
+      "name": "Extended Story",
+      "purpose": "More time to develop the narrative."
+    },
+    "perVideo": "per video",
+    "seconds": "seconds",
+    "features": {
+      "style": "Pen-and-watercolour visual style",
+      "format": "Vertical 9:16, 1080 × 1920",
+      "text": "Animated scenes and Arabic text when needed",
+      "voice": "Arabic voiceover included on request",
+      "sound": "No music; natural sound effects when needed",
+      "revision": "One revision within the agreed scope"
+    },
+    "beforeTitle": "Before choosing a package",
+    "voice": "We agree on the voiceover text and style before production. You may provide an audio recording you have permission to use. A specific Quran recitation requires confirmation of availability and usage rights before payment.",
+    "custom": "For horizontal video, English translation, longer stories or a series, contact us first to agree on the scope and price.",
+    "payment": "Start with a free enquiry. We discuss the details and delivery date before payment. These informational pages do not take payment or create an order."
+  },
+  "Faq": {
+    "enquiry": {
+      "question": "Can I discuss my idea before paying?",
+      "answer": "Yes. Send your idea by email to start a free conversation without commitment. We review your request and agree on the details before payment. An enquiry is not a paid order."
+    },
+    "timing": {
+      "question": "Will I receive a video immediately after payment?",
+      "answer": "No. This is a custom production under our supervision. We discuss and confirm a delivery date before production, then deliver the finished video digitally."
+    },
+    "duration": {
+      "question": "What is the minimum video length?",
+      "answer": "The minimum is 40 seconds. Drawn Story runs for 40–45 seconds; Extended Story runs for 60–75 seconds. Longer projects need a specific scope and price agreement."
+    },
+    "voice": {
+      "question": "Is voiceover or recitation included?",
+      "answer": "Arabic voiceover is included on request, with text and style agreed before production. You may provide a recording you have rights to use. For a specific Quran recitation, contact us before paying to confirm availability and usage rights. We do not add music."
+    },
+    "format": {
+      "question": "Can I request English translation or horizontal video?",
+      "answer": "The current packages cover vertical 9:16 video in 1080 × 1920. For English translation or a horizontal version, contact us before payment to agree on scope and price."
+    },
+    "revision": {
+      "question": "How do I request a revision?",
+      "answer": "Reply to our email with your feedback. Each package includes one revision within the agreed idea. If the requested change goes beyond that scope, discuss it with the studio before further work."
+    }
+  },
+  "Studio": {
+    "title": "The message sets the direction",
+    "approach": "A story can explain, remind or invite reflection. We start by understanding what the viewer should take away, then discuss how scenes and movement can support that intention. The result is a custom video with an agreed scope.",
+    "visualTitle": "Pen, watercolour and measured movement",
+    "visual": "Our visual language draws on pen lines, soft colours and illustrated landscapes. Movement serves the narrative. Arabic text and optional Arabic voiceover can help carry the story; the videos do not include music.",
+    "careTitle": "Care with references and representation",
+    "care": "For Quran-inspired stories, include the surah and verses in your brief, along with visual preferences. Our existing approach does not depict God and avoids showing the faces of prophets. References, recordings and permissions are discussed before production."
+  },
+  "Contact": {
+    "briefTitle": "What to include in your message",
+    "intro": "A few concrete details help us understand your project. You can start with an outline and discuss the rest with the studio.",
+    "brief": {
+      "story": "The story or message, its purpose and intended audience.",
+      "format": "The package or approximate length, where the video will be shared and any timing needs.",
+      "voice": "Whether you want the included Arabic voiceover, plus your preferences for the text and style.",
+      "references": "Visual references you can use; for Quran-inspired content, the surah and verses. Mention any specific audio recording so rights can be checked."
+    },
+    "safety": "Do not include payment details, passwords or unnecessary personal information in your brief.",
+    "emailTitle": "Write to the studio",
+    "emailIntro": "Send your idea directly to our existing contact address.",
+    "subject": "Qalam Motion — My video idea",
+    "emailAction": "Open an email draft",
+    "mailHint": "This opens your email app. Nothing is sent by this website. If no app opens, copy the address into your email service.",
+    "next": "We review your idea and discuss the scope and delivery date before production and payment. This first exchange is free and does not commit you to an order."
   },
   "NotFound": {
     "title": "Page not found",

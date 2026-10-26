@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pages publiques traduites — PR 24</title>
+<style>
+:root{color-scheme:light;--paper:#f7efdf;--ink:#344332;--line:#cbbb99;--green:#3e553e}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.75 system-ui,sans-serif}
+main,header,footer{max-width:1000px;margin:auto;padding:2rem 1.5rem}
+h1,h2,h3{line-height:1.25;text-wrap:balance}h1{font:clamp(2.2rem,5vw,3.8rem)/1.15 Georgia,serif;max-width:21ch}
+h2{font-size:2rem;margin-top:0}h3{font-size:1.2rem}p{max-width:78ch}a{color:inherit;text-underline-offset:.25em}
+nav{display:flex;flex-wrap:wrap;gap:.7rem 1.5rem}nav a{padding:.5rem 0}
+section{padding:2.8rem 0;border-top:1px solid var(--line);scroll-margin-top:1rem}
+.callout{padding:1.1rem 1.4rem;border-inline-start:4px solid var(--green);background:#e7e8d8;margin:1.5rem 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+.card,.node{padding:1.25rem;border:1px solid var(--line);border-radius:.65rem;background:#fffaf0}
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1.5rem 0}
+.node strong{display:block}.node small{display:block;margin-top:.7rem}.flow-label{font-weight:700}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:1rem;background:#e9dfca;border-radius:.4rem;font-size:.9rem;direction:ltr;text-align:left}
+code{font-size:.9em}table{width:100%;border-collapse:collapse}td,th{text-align:start;padding:.7rem;border-bottom:1px solid var(--line);vertical-align:top}
+.table-wrap{overflow:auto}.quiz{padding:1.25rem;border:1px solid var(--line);border-radius:.6rem;margin:1.5rem 0}
+fieldset{border:0;padding:0;margin:0}legend{font-weight:700;margin-bottom:1rem}button{display:block;width:100%;text-align:start;padding:.75rem 1rem;margin:.6rem 0;border:1px solid var(--line);border-radius:.35rem;background:#fffaf0;color:var(--ink);font:inherit;cursor:pointer}
+button:hover{background:#e9dfca}button:active{background:#d9dcbf}button[aria-pressed=true]{border:2px solid var(--green)}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--green);outline-offset:4px}
+.feedback{min-height:2em;font-weight:600}details{margin:1rem 0}summary{cursor:pointer;font-weight:700}
+@media(max-width:650px){.grid,.flow{grid-template-columns:1fr}main,header,footer{padding:1.5rem 1rem}}
+</style>
+</head>
+<body id="top">
+<header>
+<p>Qalam Motion · 26 octobre 2026 · <a href="https://github.com/yass1220/Qalam-motion-/pull/24">PR #24 vers dev</a></p>
+<h1>De la page d’attente aux pages publiques traduites</h1>
+<p>Sept pages dans quatre langues : 28 URL qui contiennent leur texte dès la réponse HTML, tout en conservant les offres et la direction visuelle existantes.</p>
+<nav aria-label="Sommaire"><a href="#contexte">Contexte</a><a href="#intuition">Intuition</a><a href="#code">Le code</a><a href="#verification">Validation et limites</a><a href="#quiz">Quiz</a></nav>
+</header>
+<main>
+<section id="contexte">
+<h2>1. Le contexte</h2>
+<details><summary>Les bases : URL, HTML, langues et prérendu</summary>
+<p>Une URL identifie une page. Ici, <code>/fr/pricing</code> représente la page des tarifs en français. Le serveur renvoie du HTML : les titres, paragraphes et liens que le navigateur peut afficher. JavaScript peut enrichir cette page, mais le lecteur doit pouvoir accéder aux informations sans attendre son exécution.</p>
+<p>Avec le prérendu, ces documents sont préparés pendant le build. Un composant exécuté sur le serveur n’implique pas, à lui seul, un prérendu : il pourrait aussi s’exécuter à chaque visite. C’est pourquoi cette PR vérifie le manifeste produit par Next.js.</p>
+<p>La langue et le sens de lecture sont deux propriétés distinctes. Le document arabe porte <code>lang="ar"</code> et <code>dir="rtl"</code>. Une durée ou une résolution conserve cependant un ordre lisible de gauche à droite grâce à une isolation locale.</p>
+</details>
+<p>Avant cette PR, la fondation Next.js possède déjà les préfixes <code>/en</code>, <code>/ar</code>, <code>/fr</code> et <code>/es</code>, les catalogues typés et la négociation de langue. Chaque version de l’accueil n’affiche qu’un message de préparation. Cette PR réutilise ce routage ; elle ne le remplace pas.</p>
+<p>Samy a approuvé l’accueil, les services, le processus, les tarifs, la FAQ, le studio et le contact, en conservant le design historique parchemin/olive. Les pages portfolio et les politiques attendent la validation des droits et des textes.</p>
+<div class="callout"><strong>Une préversion à relire.</strong> Les pages gardent <code>noindex</code>. Leur fusion dans <code>dev</code> ne valide pas les traductions, les formulations commerciales ou religieuses et ne constitue pas une bascule en production.</div>
+</section>
+<section id="intuition">
+<h2>2. L’intuition</h2>
+<p>La structure d’une page ne change pas lorsque l’on change sa langue. On sépare donc trois choses : la liste des pages autorisées, les textes de chaque langue et leur présentation commune. Cette séparation limite les divergences entre versions.</p>
+<div class="flow" role="group" aria-label="Exemple de fabrication de la page tarifs arabe">
+<div class="node"><strong>Une URL précise</strong><code>/ar/pricing</code><small>Langue : ar<br>Page : pricing</small></div>
+<div class="node"><strong>Deux sources</strong><code>messages/ar.json</code><br><code>content/public-site.ts</code><small>Texte arabe + offres identiques</small></div>
+<div class="node"><strong>Un document HTML</strong><code>lang="ar" dir="rtl"</code><small>Titre, deux offres et contact déjà présents</small></div>
+</div>
+<p>Par exemple, l’offre <code>short</code> coûte toujours 15 USD et dure 40–45 secondes. Seuls son nom et les explications changent selon la langue. Le formatage monétaire utilise la locale sans convertir le prix dans une autre devise.</p>
+<div class="grid">
+<div class="card"><h3>Avant</h3><p><code>/fr</code> : titre de préparation et description. Les autres pages ne sont pas encore disponibles.</p></div>
+<div class="card"><h3>Après</h3><p><code>/fr/pricing</code> : titre français, prix en USD, inclusions, conditions de préparation et lien vers le contact.</p></div>
+</div>
+<p>La même idée s’applique au contact : afficher une adresse et ouvrir un brouillon e-mail constitue un parcours réel et explicite. Un formulaire qui annoncerait un envoi sans service raccordé créerait une fausse confirmation.</p>
+</section>
+<section id="code">
+<h2>3. Le parcours du code</h2>
+<h3>Définir les pages et le contrat des offres</h3>
+<p><code>content/public-site.ts</code> contient l’inventaire autorisé, le calcul des liens, les deux offres et l’adresse publique du studio. Les identifiants métiers restent indépendants de la traduction.</p>
+<pre>short     → 15 USD → 40–45 secondes
+signature → 25 USD → 60–75 secondes
+
+pageHref("fr", "home")    → /fr
+pageHref("ar", "pricing") → /ar/pricing</pre>
+<h3>Générer toutes les combinaisons utiles</h3>
+<p>Le layout <code>app/[locale]/layout.tsx</code> énumère les quatre langues. La nouvelle route <code>app/[locale]/[page]/page.tsx</code> énumère les six pages secondaires. L’accueil conserve sa route dédiée. Cela produit 4 accueils et 24 pages secondaires, soit 28 pages.</p>
+<p>La route vérifie la langue et le slug. Une page inconnue, y compris le portfolio ou les politiques différés, retourne une 404 traduite. Il n’y a pas de nouvelle page de service fabriquée à partir d’un mot-clé.</p>
+<h3>Composer une présentation commune</h3>
+<p><code>components/public-page.tsx</code> affiche les sections correspondant à la page demandée. L’accueil donne un aperçu des services et du processus ; les pages secondaires développent leur propre sujet. Le layout fournit le logo, la navigation, les langues et le pied de page.</p>
+<p>La FAQ utilise les éléments HTML natifs <code>details</code> et <code>summary</code>. Le lien d’évitement mène au contenu principal, y compris sur la 404. Les contrôles disposent de zones de clic, de focus visibles et d’un traitement de la réduction des animations.</p>
+<h3>Lire les catalogues complets</h3>
+<p><code>messages/en.json</code>, <code>ar.json</code>, <code>fr.json</code> et <code>es.json</code> regroupent contenu, navigation, FAQ, indications de contact et métadonnées. Le typage et les tests de parité vérifient la présence des clés ; ils ne peuvent pas certifier le naturel ou l’exactitude linguistique.</p>
+<h3>Respecter le RTL et le design historique</h3>
+<p><code>TechnicalText</code> isole les nombres, plages et dimensions avec <code>bdi dir="ltr"</code>. Le texte arabe reste RTL. L’illustration décorative historique, de 1672 × 941 pixels, revient dans le héros avec ses dimensions déclarées et un texte alternatif vide.</p>
+<pre>&lt;p dir="rtl"&gt;
+  المدة &lt;bdi dir="ltr"&gt;40–45&lt;/bdi&gt; ثانية
+&lt;/p&gt;</pre>
+<p>Le fichier <code>app/globals.css</code> traduit la palette parchemin/olive en mises en page adaptées au mobile. Le sélecteur actuel reste celui de la fondation : sa capsule coulissante et la stabilité physique du header sont suivies dans #23.</p>
+</section>
+<section id="verification">
+<h2>4. Ce qui est vérifié, et ce qui reste ouvert</h2>
+<div class="table-wrap"><table><thead><tr><th>Contrôle</th><th>Ce qu’il démontre</th></tr></thead><tbody>
+<tr><td>Lint et TypeScript</td><td>Respect des règles du dépôt et cohérence des types.</td></tr>
+<tr><td>Six tests de catalogues/routage</td><td>Clés complètes, négociation, choix explicite et conservation des liens.</td></tr>
+<tr><td>Build de production</td><td>Les 28 routes publiques sont annoncées SSG.</td></tr>
+<tr><td>Matrice HTTP</td><td>Contenu visible et métadonnées localisés après suppression des scripts, liens de langue équivalents, tarifs et FAQ.</td></tr>
+<tr><td>Manifeste de prérendu</td><td>Présence des 28 routes, sans revalidation temporisée.</td></tr>
+<tr><td>Vérifications navigateur</td><td>Tarifs arabes sur mobile, contact espagnol à 320 px, ouverture de FAQ et lien d’évitement au clavier.</td></tr>
+</tbody></table></div>
+<p>Le build et les tests HTTP ont réussi pendant l’implémentation. Lint, TypeScript et les six tests ont de nouveau réussi avant le commit des pages. La CI de la PR rejoue l’installation figée, le lint, le typage, les tests, le build et la matrice HTTP.</p>
+<div class="callout"><strong>Ces preuves ont des limites.</strong> Elles ne prouvent ni la qualité des traductions ni le comportement d’un hébergeur en production. Le site ne crée pas de demande, de paiement ou de commande dans cette préversion.</div>
+<ul>
+<li><a href="https://github.com/yass1220/Qalam-motion-/issues/22">#22</a> : relecture humaine des pages et traductions par Yassine.</li>
+<li><a href="https://github.com/yass1220/Qalam-motion-/issues/23">#23</a> : sélecteur en capsule et header stable entre langues.</li>
+<li><a href="https://github.com/yass1220/Qalam-motion-/issues/13">#13</a> : formulaire et parcours transactionnel.</li>
+<li><a href="https://github.com/yass1220/Qalam-motion-/issues/17">#17</a> : SEO final, canonicals, hreflang et sitemap.</li>
+</ul>
+<p>L’issue #15 reste une référence de périmètre : la présente PR ne prétend pas fermer ses validations humaines ou ses intégrations restantes.</p>
+</section>
+<section id="quiz">
+<h2>5. Vérifiez votre compréhension</h2>
+<p>Sélectionnez une réponse par question. Vous pouvez changer de réponse pour comparer les explications.</p>
+<div class="quiz"><fieldset><legend>1. Pourquoi le build prépare-t-il 28 pages ?</legend>
+<button type="button" data-correct="false" data-feedback="Le portfolio et les politiques sont différés.">Quatre langues pour sept pages de services distinctes.</button>
+<button type="button" data-correct="true" data-feedback="Oui : quatre accueils, plus quatre langues multipliées par six pages secondaires.">Quatre langues pour l’accueil et six pages secondaires.</button>
+<button type="button" data-correct="false" data-feedback="Le JavaScript ne traduit pas les pages au premier chargement : leur HTML est déjà localisé.">Sept pages dont le navigateur fabrique les traductions.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+<div class="quiz"><fieldset><legend>2. Que se passe-t-il avec l’offre short en français ?</legend>
+<button type="button" data-correct="false" data-feedback="Aucune conversion en euros n’est introduite.">Son prix est converti automatiquement en euros.</button>
+<button type="button" data-correct="false" data-feedback="Le prix ne doit pas dépendre d’un texte commercial traduit.">Son prix dépend du nombre saisi dans le catalogue français.</button>
+<button type="button" data-correct="true" data-feedback="Oui : le contrat garde 15 USD ; la locale ne change que la présentation monétaire et les textes.">Elle reste à 15 USD avec un affichage adapté à la locale.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+<div class="quiz"><fieldset><legend>3. Quelle preuve distingue un prérendu d’un simple composant serveur ?</legend>
+<button type="button" data-correct="true" data-feedback="Oui : la sortie du build et les entrées du manifeste confirment les routes préparées.">La route figure dans le build SSG et le manifeste de prérendu.</button>
+<button type="button" data-correct="false" data-feedback="Un composant serveur peut aussi être exécuté à chaque requête.">Le fichier ne porte pas la directive use client.</button>
+<button type="button" data-correct="false" data-feedback="Un titre traduit ne prouve pas quand la page est construite.">Le titre de page est traduit.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+<div class="quiz"><fieldset><legend>4. Pourquoi isoler 40–45 dans le document arabe ?</legend>
+<button type="button" data-correct="false" data-feedback="L’isolation directionnelle ne traduit ni ne convertit une durée.">Pour convertir automatiquement les secondes en arabe.</button>
+<button type="button" data-correct="true" data-feedback="Oui : une plage sans caractère fortement LTR peut hériter du RTL ; bdi protège son ordre local.">Pour garder l’ordre de la plage tout en conservant le paragraphe RTL.</button>
+<button type="button" data-correct="false" data-feedback="Le reste de la page arabe doit conserver sa lecture RTL.">Pour rendre toute la page en LTR.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+<div class="quiz"><fieldset><legend>5. Qu’autorise le lien de contact dans cette PR ?</legend>
+<button type="button" data-correct="false" data-feedback="Aucune commande ni aucun paiement n’est créé par ces pages.">Créer une commande après validation des champs.</button>
+<button type="button" data-correct="false" data-feedback="Le site ne possède pas encore ce parcours d’envoi raccordé.">Envoyer automatiquement le message au studio.</button>
+<button type="button" data-correct="true" data-feedback="Oui : le client mail prépare un brouillon, puis la personne décide de l’envoyer.">Ouvrir un brouillon dans l’application de messagerie.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+</section>
+</main>
+<footer><a href="#top" id="back-top">Revenir au début</a> · <a href="https://github.com/yass1220/Qalam-motion-/pull/24">Voir la PR #24</a></footer>
+<script>
+document.querySelectorAll('.quiz').forEach(function(quiz){
+  var buttons=quiz.querySelectorAll('button');
+  buttons.forEach(function(button){
+    button.setAttribute('aria-pressed','false');
+    button.addEventListener('click',function(){
+      buttons.forEach(function(other){other.setAttribute('aria-pressed',String(other===button));});
+      quiz.querySelector('.feedback').textContent=(button.dataset.correct==='true'?'Bonne réponse. ':'À revoir. ')+button.dataset.feedback;
+    });
+  });
+});
+</script>
+</body>
+</html>

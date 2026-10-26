@@ -1,13 +1,20 @@
-import {getTranslations} from "next-intl/server";
+import type {Metadata} from "next";
+import {hasLocale} from "next-intl";
+import {notFound} from "next/navigation";
+import {PublicPageContent} from "@/components/public-page";
+import {pageCopy} from "@/content/public-site";
+import {routing} from "@/i18n/routing";
 
-export default async function HomePage() {
-  const t = await getTranslations("Home");
-  return (
-    <main className="mx-auto flex min-h-[80vh] max-w-3xl flex-col justify-center gap-6 px-6 py-16">
-      <p className="text-sm font-medium tracking-widest uppercase"><bdi>Qalam Motion</bdi></p>
-      <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">{t("title")}</h1>
-      <p className="max-w-xl text-lg leading-relaxed text-neutral-600">{t("description")}</p>
-    </main>
-  );
+type Props = {params: Promise<{locale: string}>};
+export async function generateMetadata({params}: Props): Promise<Metadata> {
+  const {locale} = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
+  const copy = pageCopy(locale, "home");
+  return {title: `${copy.title} | Qalam Motion`, description: copy.description};
+}
+export default async function HomePage({params}: Props) {
+  const {locale} = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
+  return <PublicPageContent locale={locale} page="home" />;
 }
 

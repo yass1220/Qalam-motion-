@@ -1,14 +1,178 @@
 {
   "Home": {
-    "title": "Un nuevo capítulo toma forma.",
-    "description": "Estamos preparando el próximo sitio de Qalam Motion. Esta vista previa de desarrollo establece la base de nuestra experiencia multilingüe."
+    "title": "Historias dibujadas que cobran vida.",
+    "description": "Qalam Motion crea relatos animados con un estilo de pluma y acuarela. Comparte primero tu idea: hablamos del alcance y de la fecha de entrega antes de la producción y el pago."
   },
   "Navigation": {
     "language": "Elegir idioma",
-    "home": "Inicio"
+    "home": "Inicio",
+    "services": "Servicios",
+    "process": "El proceso",
+    "pricing": "Precios",
+    "faq": "Preguntas frecuentes",
+    "studio": "El estudio",
+    "contact": "Contacto",
+    "main": "Navegación principal",
+    "footer": "Enlaces útiles"
   },
   "Metadata": {
-    "description": "Estamos preparando el próximo sitio de Qalam Motion."
+    "description": "Relatos dibujados y animados de Qalam Motion. Descubre nuestro enfoque, los paquetes de vídeo y el proceso de producción."
+  },
+  "Site": {
+    "tagline": "Estudio de historias dibujadas",
+    "skip": "Ir al contenido",
+    "cta": "Cuéntanos tu idea",
+    "servicesLink": "Descubrir los servicios",
+    "pricingLink": "Comparar los paquetes de vídeo",
+    "processLink": "Conocer las etapas",
+    "moreQuestions": "¿Tienes una pregunta sobre tu proyecto? Describe lo que necesitas y podremos hablar de los detalles antes de que te comprometas.",
+    "contactTitle": "¿Qué historia quieres contar?",
+    "contactBody": "Una idea, un relato más largo o una serie educativa: empecemos con una conversación, sin pago ni compromiso."
+  },
+  "Pages": {
+    "services": {
+      "title": "Dale una forma dibujada a tu idea.",
+      "description": "Nuestros vídeos combinan escenas ilustradas, movimientos medidos y textos en árabe cuando hacen falta. El punto de partida es el mensaje que quieres compartir y el público al que te diriges."
+    },
+    "process": {
+      "title": "Primero una idea. Después un acuerdo claro.",
+      "description": "No necesitas un guion terminado para escribirnos. Hablamos del relato, el formato, la voz y la entrega para definir el alcance de la producción antes del pago."
+    },
+    "pricing": {
+      "title": "Elige el espacio que necesita tu historia.",
+      "description": "Dos paquetes de vídeo con precios en dólares estadounidenses. Ambos incluyen el estilo de pluma y acuarela, entrega vertical y una revisión dentro del alcance acordado. Hablemos de tu idea antes de elegir."
+    },
+    "faq": {
+      "title": "Respuestas claras antes de empezar.",
+      "description": "Qué incluye cada paquete, cuándo empieza la producción y cómo preparar tu consulta. Estas respuestas describen nuestros paquetes existentes; las peticiones especiales se hablan antes del pago."
+    },
+    "studio": {
+      "title": "Una forma serena de animar historias.",
+      "description": "Qalam Motion es un estudio de relatos ilustrados y animados. Trazos de pluma, paisajes de acuarela y movimientos medidos dejan espacio para desarrollar el mensaje."
+    },
+    "contact": {
+      "title": "Empecemos con tu idea.",
+      "description": "Cuéntanos qué quieres comunicar, a quién y cómo imaginas el vídeo. La primera conversación es gratuita y no crea un pedido de pago."
+    }
+  },
+  "Services": {
+    "title": "El movimiento al servicio del relato",
+    "intro": "Un mismo enfoque visual, adaptado al mensaje. Acordamos el contenido y el formato antes de empezar la producción.",
+    "items": {
+      "stories": {
+        "title": "Relatos ilustrados",
+        "body": "Desarrolla un relato breve a partir de una idea, una escena o un mensaje con sentido. Los escenarios dibujados y los movimientos suaves guían al espectador, con textos en árabe cuando ayudan a comprender."
+      },
+      "education": {
+        "title": "Contenido educativo",
+        "body": "Presenta una explicación o una lección mediante una secuencia dibujada. Indica el público, las referencias y el mensaje principal para hablar del nivel de detalle y de la duración adecuados."
+      },
+      "custom": {
+        "title": "Proyectos más largos",
+        "body": "Para un relato más largo, contenido para un instituto o una serie educativa, contacta primero con nosotros. El alcance, el formato y el precio necesitan un acuerdo específico, más allá de los paquetes estándar."
+      }
+    },
+    "scope": "Los paquetes estándar son vídeos verticales 9:16 en 1080 × 1920. La voz en off en árabe está incluida si la solicitas. El formato horizontal y la traducción al inglés requieren un acuerdo aparte."
+  },
+  "Process": {
+    "title": "Del primer mensaje a la entrega",
+    "intro": "Una producción personalizada, con una conversación antes de cualquier pago. El vídeo se prepara bajo nuestra supervisión y no se genera al instante.",
+    "steps": {
+      "idea": {
+        "title": "Comparte tu idea",
+        "body": "Describe el relato, el público y el objetivo. Añade referencias y preferencias visuales o de voz. Esta primera consulta es gratuita y sin compromiso."
+      },
+      "agreement": {
+        "title": "Acordamos los detalles",
+        "body": "Revisamos tu consulta y hablamos del alcance, el guion, el formato y la entrega. Los audios, las recitaciones o los formatos específicos se comprueban antes del pago."
+      },
+      "production": {
+        "title": "Preparamos el vídeo",
+        "body": "La producción empieza tras el acuerdo y la confirmación del pago. Las ilustraciones, el movimiento y la voz en off en árabe solicitada siguen la dirección acordada. No añadimos música."
+      },
+      "delivery": {
+        "title": "Recibe y revisa",
+        "body": "El vídeo terminado se entrega digitalmente. Cada paquete incluye una revisión dentro de la idea acordada; describe tus comentarios en nuestra conversación por correo."
+      }
+    },
+    "timing": "El plazo depende del proyecto acordado. Confirmamos una fecha antes de la producción; el pago no proporciona un vídeo instantáneo ni un plazo garantizado automáticamente."
+  },
+  "Pricing": {
+    "title": "Dos duraciones, el mismo cuidado",
+    "intro": "Un mínimo de 40 segundos. Todos los precios son en USD, por vídeo; aquí no se ofrece conversión de moneda.",
+    "short": {
+      "name": "Historia dibujada",
+      "purpose": "Espacio para una idea concreta."
+    },
+    "signature": {
+      "name": "Historia ampliada",
+      "purpose": "Más tiempo para desarrollar el relato."
+    },
+    "perVideo": "por vídeo",
+    "seconds": "segundos",
+    "features": {
+      "style": "Estilo visual de pluma y acuarela",
+      "format": "Vertical 9:16, 1080 × 1920",
+      "text": "Escenas animadas y textos en árabe cuando hacen falta",
+      "voice": "Voz en off en árabe incluida si la solicitas",
+      "sound": "Sin música; sonidos naturales cuando hacen falta",
+      "revision": "Una revisión dentro del alcance acordado"
+    },
+    "beforeTitle": "Antes de elegir un paquete",
+    "voice": "Acordamos el texto y el estilo de la voz antes de producir. Puedes aportar una grabación que tengas permiso para usar. Una recitación coránica concreta requiere confirmar la disponibilidad y los derechos de uso antes del pago.",
+    "custom": "Para vídeo horizontal, traducción al inglés, relatos más largos o una serie, contacta primero con nosotros para acordar el alcance y el precio.",
+    "payment": "Empieza con una consulta gratuita. Hablamos de los detalles y de la entrega antes del pago. Estas páginas informativas no cobran ni crean pedidos."
+  },
+  "Faq": {
+    "enquiry": {
+      "question": "¿Puedo hablar de mi idea antes de pagar?",
+      "answer": "Sí. Envía tu idea por correo para empezar una conversación gratuita y sin compromiso. Revisamos tu consulta y acordamos los detalles antes del pago. Una consulta no es un pedido de pago."
+    },
+    "timing": {
+      "question": "¿Recibiré el vídeo inmediatamente después de pagar?",
+      "answer": "No. Es una producción personalizada bajo nuestra supervisión. Hablamos y confirmamos una fecha de entrega antes de la producción y después entregamos el vídeo terminado digitalmente."
+    },
+    "duration": {
+      "question": "¿Cuál es la duración mínima de un vídeo?",
+      "answer": "El mínimo es de 40 segundos. Historia dibujada dura 40–45 segundos e Historia ampliada, 60–75 segundos. Los proyectos más largos necesitan un acuerdo específico sobre el alcance y el precio."
+    },
+    "voice": {
+      "question": "¿Se incluye la voz en off o la recitación?",
+      "answer": "La voz en off en árabe está incluida si la solicitas, con el texto y el estilo acordados antes de producir. Puedes aportar una grabación que tengas derecho a usar. Para una recitación coránica concreta, contacta antes de pagar para confirmar la disponibilidad y los derechos. No añadimos música."
+    },
+    "format": {
+      "question": "¿Puedo pedir una traducción al inglés o un vídeo horizontal?",
+      "answer": "Los paquetes actuales cubren vídeos verticales 9:16 en 1080 × 1920. Para una traducción al inglés o una versión horizontal, contacta antes de pagar para acordar el alcance y el precio."
+    },
+    "revision": {
+      "question": "¿Cómo solicito una revisión?",
+      "answer": "Responde a nuestro correo con tus comentarios. Cada paquete incluye una revisión dentro de la idea acordada. Si el cambio supera ese alcance, háblalo con el estudio antes de realizar más trabajo."
+    }
+  },
+  "Studio": {
+    "title": "El mensaje marca la dirección",
+    "approach": "Un relato puede explicar, recordar o invitar a reflexionar. Empezamos por entender qué debe retener el espectador y hablamos de cómo las escenas y el movimiento pueden apoyar esa intención. El resultado es un vídeo personalizado con un alcance acordado.",
+    "visualTitle": "Pluma, acuarela y movimiento medido",
+    "visual": "Nuestro lenguaje visual combina trazos de pluma, colores suaves y paisajes ilustrados. El movimiento acompaña al relato. Los textos en árabe y la voz en off en árabe opcional pueden transmitir el mensaje; los vídeos no incluyen música.",
+    "careTitle": "Cuidado con las referencias y las representaciones",
+    "care": "Para relatos inspirados en el Corán, indica la sura y los versículos en tu consulta, junto con tus preferencias visuales. Nuestro enfoque existente no representa a Dios y evita mostrar los rostros de los profetas. Las referencias, las grabaciones y los permisos se hablan antes de la producción."
+  },
+  "Contact": {
+    "briefTitle": "Qué incluir en tu mensaje",
+    "intro": "Unos detalles concretos nos ayudan a entender tu proyecto. Puedes empezar con un esquema y hablar del resto con el estudio.",
+    "brief": {
+      "story": "El relato o el mensaje, su objetivo y el público al que se dirige.",
+      "format": "El paquete o la duración aproximada, dónde se compartirá el vídeo y los plazos que necesitas.",
+      "voice": "Si deseas la voz en off en árabe incluida y tus preferencias de texto y estilo.",
+      "references": "Referencias visuales que puedas usar; para contenido inspirado en el Corán, la sura y los versículos. Menciona cualquier audio concreto para comprobar los derechos."
+    },
+    "safety": "No incluyas datos de pago, contraseñas ni información personal innecesaria en tu consulta.",
+    "emailTitle": "Escribe al estudio",
+    "emailIntro": "Envía tu idea directamente a nuestra dirección de contacto existente.",
+    "subject": "Qalam Motion — Mi idea de vídeo",
+    "emailAction": "Abrir un borrador de correo",
+    "mailHint": "Este enlace abre tu aplicación de correo. El sitio no envía nada. Si no se abre ninguna aplicación, copia la dirección en tu servicio de correo.",
+    "next": "Revisamos tu idea y hablamos del alcance y la entrega antes de la producción y el pago. Este primer intercambio es gratuito y no te compromete a hacer un pedido."
   },
   "NotFound": {
     "title": "Página no encontrada",
