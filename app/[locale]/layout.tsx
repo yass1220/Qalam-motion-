@@ -1,0 +1,76 @@
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import { notFound } from "next/navigation";
+import { hasLocale } from "next-intl";
+import { getTranslations } from "next-intl/server";
+import { routing } from "@/i18n/routing";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { PenMark } from "@/components/studio-art";
+import "../globals.css";
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Metadata");
+  return {
+    title: "Qalam Motion — Illustrated stories",
+    description: t("description"),
+    robots: {
+      index: process.env.NODE_ENV === "production",
+      follow: process.env.NODE_ENV === "production",
+    },
+  };
+}
+export default async function LocaleLayout({
+  children,
+  params,
+}: {
+  children: ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  if (!hasLocale(routing.locales, locale)) notFound();
+  const t = await getTranslations("Home");
+  const nav = await getTranslations("Navigation");
+  return (
+    <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
+      <body>
+        <a className="skip-link" href="#main">
+          {t("skip")}
+        </a>
+        <header className="site-header wrap">
+          <a className="brand" href={`/${locale}`} aria-label="Qalam Motion">
+            <PenMark />
+            <span>
+              Qalam
+              <span className="brand-second">
+                Motion<span className="brand-dot">.</span>
+              </span>
+            </span>
+          </a>
+          <nav
+            className="main-nav"
+            dir={locale === "ar" ? "rtl" : "ltr"}
+            aria-label={nav("home")}
+          >
+            <a href={`/${locale}#craft`}>{t("navCraft")}</a>
+            <a href={`/${locale}#films`}>{t("navStories")}</a>
+            <a href={`/${locale}#process`}>{t("navProcess")}</a>
+          </nav>
+          <div className="header-end">
+            <LanguageSwitcher locale={locale} label={nav("language")} />
+            <a
+              className="header-contact"
+              dir={locale === "ar" ? "rtl" : "ltr"}
+              href={`/${locale}#contact`}
+            >
+              {t("navContact")}
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </header>
+        {children}
+      </body>
+    </html>
+  );
+}

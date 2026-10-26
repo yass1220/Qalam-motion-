@@ -1,0 +1,39 @@
+name: Validate release
+on:
+  push:
+    branches: [main, 'codex/official-studio-release']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && corepack prepare pnpm@10.28.2 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check && pnpm typecheck && pnpm test
+      - run: pnpm build
+      - name: Check combined production server with isolated local data
+        env:
+          DATABASE_URL: ''
+          RAILWAY_ENVIRONMENT: ''
+          PAYPAL_MODE: sandbox
+          PORT: 3166
+          I18N_TEST_BASE_URL: http://127.0.0.1:3166
+          EXPECT_INDEXABLE: 'true'
+        run: |
+          export DATA_DIR="$RUNNER_TEMP/qalam-release-data"
+          pnpm start > "$RUNNER_TEMP/qalam-release.log" 2>&1 &
+          preview_pid=$!
+          trap 'kill "$preview_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3166/health > /dev/null; then break; fi
+            sleep 1
+          done
+          pnpm exec tsx --test test/i18n-http.test.ts test/marketing-production.test.ts

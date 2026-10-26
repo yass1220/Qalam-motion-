@@ -3,24 +3,46 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "packageManager": "npm@11.9.0",
+  "packageManager": "pnpm@10.28.2",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
+    "start": "NODE_ENV=production node server.js",
+    "dev": "next dev",
     "check": "node --check server.js && node --check paypal-receiver.js && node --check postgres-store.js && node --check email-outbox.js && node --check public/admin-order-utils.js && node --check public/checkout.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js && tsx --test test/i18n.test.ts",
+    "build": "next build",
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "eslint app components i18n messages next.config.ts proxy.ts",
+    "test:http": "tsx --test test/i18n-http.test.ts",
+    "dev:backend": "node --watch server.js",
+    "test:release": "tsx --test test/i18n-http.test.ts test/marketing-production.test.ts"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.13.0"
   },
   "dependencies": {
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.5.0",
-    "helmet": "^8.0.0",
-    "pg": "^8.13.1"
+    "dotenv": "16.6.1",
+    "express": "4.22.3",
+    "express-rate-limit": "7.5.1",
+    "helmet": "8.3.0",
+    "pg": "8.23.1",
+    "negotiator": "1.1.0",
+    "next": "16.4.3",
+    "next-intl": "4.14.9",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.10"
+    "@electric-sql/pglite": "0.5.10",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/negotiator": "0.6.5",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.13.0",
+    "eslint-config-next": "16.4.3",
+    "jiti": "2.7.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
   }
 }
