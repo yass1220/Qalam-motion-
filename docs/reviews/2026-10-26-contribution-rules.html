@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Règles de contribution — PR 25</title>
+<style>
+:root{color-scheme:light;--ink:#344332;--paper:#f7efdf;--line:#cbbb99;--accent:#3e553e}*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.75 system-ui,sans-serif}
+main,header,footer{max-width:980px;margin:auto;padding:2rem 1.5rem}
+h1{font:clamp(2rem,5vw,3.5rem)/1.2 Georgia,serif;max-width:23ch}h2,h3{line-height:1.3}p{max-width:76ch}
+a{color:inherit;text-underline-offset:.25em}nav{display:flex;flex-wrap:wrap;gap:1rem}nav a{padding:.5rem 0}
+section{border-top:1px solid var(--line);padding:2.5rem 0;scroll-margin-top:1rem}
+.callout{padding:1rem 1.3rem;border-inline-start:4px solid var(--accent);background:#e6e8d6;margin:1.5rem 0}
+.flow,.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin:1.5rem 0}
+.card{border:1px solid var(--line);background:#fffaf0;border-radius:.6rem;padding:1.2rem}.card strong{display:block}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#e9dfca;padding:1.1rem;border-radius:.4rem;font-size:.9rem}
+code{font-size:.9em}summary{cursor:pointer;font-weight:700}table{width:100%;border-collapse:collapse}
+th,td{text-align:start;padding:.8rem;border-bottom:1px solid var(--line);vertical-align:top}.table-wrap{overflow:auto}
+.quiz{border:1px solid var(--line);padding:1.2rem;margin:1.5rem 0;border-radius:.6rem}
+fieldset{border:0;margin:0;padding:0}legend{font-weight:700;margin-bottom:.8rem}
+button{display:block;width:100%;text-align:start;font:inherit;color:inherit;background:#fffaf0;border:1px solid var(--line);border-radius:.35rem;margin:.6rem 0;padding:.75rem 1rem;cursor:pointer}
+button:hover{background:#e9dfca}button:active{background:#d9dcbf}button[aria-pressed=true]{border:2px solid var(--accent)}
+.feedback{min-height:2em;font-weight:600}a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+@media(max-width:650px){.flow,.grid{grid-template-columns:1fr}main,header,footer{padding:1.5rem 1rem}}
+</style>
+</head>
+<body id="top">
+<header>
+<p>Qalam Motion · 26 octobre 2026 · <a href="https://github.com/yass1220/Qalam-motion-/pull/25">PR #25 vers dev</a></p>
+<h1>Une tâche à la fois, une PR par objectif</h1>
+<p>Cette PR ajoute un fichier <code>AGENTS.md</code> à la racine du dépôt. Il rend explicites les règles de périmètre, de commit et de publication attendues pour toutes les interventions.</p>
+<nav aria-label="Sommaire"><a href="#contexte">Contexte</a><a href="#intuition">Intuition</a><a href="#regles">Le fichier</a><a href="#limites">Validation et limites</a><a href="#quiz">Quiz</a></nav>
+</header>
+<main>
+<section id="contexte"><h2>1. Le contexte</h2>
+<details><summary>Les bases : branche, commit et pull request</summary>
+<p>Un commit enregistre un ensemble de changements. Une branche regroupe des commits autour d'un travail. Une pull request propose d'intégrer cette branche dans une cible : elle donne aux autres contributeurs un endroit pour relire le diff et voir les contrôles avant la fusion.</p>
+<p>Lorsque plusieurs sujets indépendants entrent dans une même PR, le titre ne décrit plus précisément le contenu. La revue devient plus difficile : un correctif peut être prêt tandis qu'une autre modification nécessite encore une décision. Le retour arrière devient lui aussi moins précis.</p>
+</details>
+<p>Le dépôt possède déjà une CI qui exécute lint, typage, tests et build. Il ne contient pas encore de fichier de contribution <code>AGENTS.md</code> à sa racine. Cette PR ajoute des consignes communes au projet sans modifier l'application ou la configuration GitHub.</p>
+<p>Le problème à résoudre est concret : découvrir un autre défaut pendant un correctif ne doit pas conduire à le corriger dans la même branche. Annoncer cet élargissement ne suffit pas à l'autoriser.</p>
+</section>
+<section id="intuition"><h2>2. L'intuition</h2>
+<p>Le périmètre est un contrat de revue. Il décrit le résultat attendu et les changements nécessaires pour l'obtenir. Tant que ce contrat ne change pas, une autre découverte reste une information à signaler.</p>
+<div class="flow" role="group" aria-label="Parcours d'un correctif">
+<div class="card"><strong>Définir</strong><p>Un objectif, ses critères et une branche depuis la bonne base.</p></div>
+<div class="card"><strong>Vérifier</strong><p>Seulement les changements utiles, puis les contrôles adaptés.</p></div>
+<div class="card"><strong>Livrer</strong><p>Une PR dédiée, ses preuves et ses limites. Fusion sur demande explicite.</p></div>
+</div>
+<div class="callout"><strong>Exemple.</strong> Pendant le correctif du sélecteur de langue, une erreur de tarif est découverte. Elle doit être signalée pour arbitrage et suivi distinct. Elle ne devient pas automatiquement une partie du correctif du sélecteur.</div>
+<p>Une tâche peut toucher plusieurs fichiers : composant, CSS, catalogue et tests peuvent tous servir le même résultat. La règle sépare les objectifs, pas les extensions de fichiers ou le nombre de commits.</p>
+</section>
+<section id="regles"><h2>3. Ce que le fichier impose</h2>
+<h3>Périmètre et séquence</h3>
+<p>La première section exige un seul objectif à la fois, interdit les corrections opportunistes et décrit quoi faire si un prérequis indépendant bloque le travail. Un changement de priorité doit être clarifié : terminer ou mettre explicitement en pause avant de passer à une autre tâche. Le travail existant doit être préservé.</p>
+<p>Une nouvelle tâche autorisée utilise une nouvelle branche. Les retours de revue restent dans la PR tant qu'ils servent son objectif. Une PR ouverte n'autorise pas à commencer spontanément une autre issue.</p>
+<h3>Branches et commits</h3>
+<p>Les branches temporaires portent des noms neutres tels que <code>fix/header-layout</code> ou <code>docs/project-rules</code>. Les changements d'une autre tâche ne doivent jamais être écrasés ou embarqués.</p>
+<pre>fix: stabilize header layout
+feat: add locale switch
+docs: clarify contribution rules</pre>
+<p>Les commits et titres de PR suivent Conventional Commits, avec une description franglish de cinq mots maximum après le préfixe. L'auteur humain configuré reste l'auteur. Le fichier interdit les secrets, crédits de génération, contournements de hooks et réécritures non autorisées.</p>
+<h3>Publication et fusion</h3>
+<div class="grid" role="group" aria-label="Droits associés aux demandes">
+<div class="card"><strong>Demande de commit</strong><p>Enregistrer le travail local. Le push n'est pas implicite.</p></div>
+<div class="card"><strong>Demande de PR</strong><p>Pousser la branche de travail et ouvrir la PR. La fusion n'est pas implicite.</p></div>
+<div class="card"><strong>Demande de fusion</strong><p>Vérifier cible, dernier commit, contrôles et revues requis avant de fusionner.</p></div>
+</div>
+<p>Les pushs directs vers <code>main</code> et <code>dev</code> sont interdits, y compris pour la documentation, une urgence ou un merge local. Les intégrations passent par une PR ; une release de <code>dev</code> vers <code>main</code> suit aussi cette règle.</p>
+<p>Après fusion, seules les branches temporaires sans commit unique peuvent être nettoyées. Le texte exclut explicitement <code>main</code>, <code>dev</code> et toute branche partagée encore utilisée : une release ne doit jamais entraîner la suppression de <code>dev</code>.</p>
+<h3>Qualité et compte rendu</h3>
+<p>Les sections finales imposent pnpm, TypeScript strict, la réutilisation de l'existant et des vérifications proportionnées. Une modification documentaire demande une relecture et une vérification des liens et de la structure ; les changements de pages ou de routage nécessitent aussi build et tests HTTP. Les validations humaines et les actions de production restent explicites.</p>
+<p>Chaque nouvelle PR reçoit une explication HTML versionnée dans <code>docs/reviews/</code>, avec contexte, intuition, parcours des changements et cinq questions. Ce document explique le même objectif ; il n'introduit pas un second correctif.</p>
+</section>
+<section id="limites"><h2>4. Validation et limites</h2>
+<div class="table-wrap"><table><thead><tr><th>Vérification</th><th>Résultat</th></tr></thead><tbody>
+<tr><td>Typage</td><td><code>pnpm exec tsc --noEmit</code> a réussi avant le commit des règles.</td></tr>
+<tr><td>Diff</td><td><code>git diff --cached --check</code> a réussi.</td></tr>
+<tr><td>Relecture</td><td>Périmètre, autorisations et exception de nettoyage des branches permanentes vérifiés.</td></tr>
+<tr><td>Application</td><td>Aucun fichier applicatif modifié, aucun serveur lancé.</td></tr>
+</tbody></table></div>
+<div class="callout"><strong>Consignes et protections sont complémentaires.</strong> <code>AGENTS.md</code> est lu par les outils compatibles et fournit une règle de contribution. Il ne bloque pas techniquement un push et ne remplace pas les protections de branches, les droits d'accès ou les contrôles CI de GitHub. Ces réglages ne sont pas modifiés dans cette PR.</div>
+<p>Cette PR est proposée pour revue vers <code>dev</code>. Sa création ne constitue pas une autorisation de fusion.</p>
+</section>
+<section id="quiz"><h2>5. Quiz</h2><p>Choisissez une réponse. Le retour explique la règle et vous pouvez réessayer.</p>
+<div class="quiz"><fieldset><legend>1. Un bug indépendant apparaît pendant le correctif courant. Que faire ?</legend>
+<button type="button" data-correct="false" data-feedback="Annoncer un élargissement ne l'autorise pas.">Annoncer le nouveau fix, puis l'ajouter à la branche.</button>
+<button type="button" data-correct="true" data-feedback="Le signalement préserve le périmètre. Une correction séparée nécessite son propre suivi autorisé.">Le signaler sans le corriger et proposer un suivi distinct.</button>
+<button type="button" data-correct="false" data-feedback="Un commit séparé ne suffit pas : la PR mélangerait encore deux objectifs.">Le corriger dans un autre commit de la même PR.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+<div class="quiz"><fieldset><legend>2. Une seule tâche modifie un composant, son style et ses tests. Combien de PR faut-il ?</legend>
+<button type="button" data-correct="true" data-feedback="Les fichiers servent le même résultat. La séparation porte sur les objectifs indépendants.">Une PR cohérente pour cet objectif.</button>
+<button type="button" data-correct="false" data-feedback="La règle ne demande pas une PR par fichier.">Trois PR, une par type de fichier.</button>
+<button type="button" data-correct="false" data-feedback="Même une petite modification doit passer par une PR.">Aucune si les tests passent.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+<div class="quiz"><fieldset><legend>3. La création d'une PR est demandée, et la CI passe. Peut-on la fusionner ?</legend>
+<button type="button" data-correct="false" data-feedback="La CI est une condition de qualité, pas une autorisation de fusion.">Oui, dès que les contrôles passent.</button>
+<button type="button" data-correct="false" data-feedback="Une autorisation ancienne ne s'étend pas aux PR suivantes.">Oui, si une précédente PR avait été fusionnée sur demande.</button>
+<button type="button" data-correct="true" data-feedback="La demande de création couvre la branche et la PR, mais la fusion doit être explicitement demandée.">Non, il faut une demande explicite de fusion.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+<div class="quiz"><fieldset><legend>4. Une PR de release de dev vers main vient d'être fusionnée. Que nettoyer ?</legend>
+<button type="button" data-correct="false" data-feedback="dev est une branche permanente et doit être conservée.">Supprimer dev, puisque c'était la source.</button>
+<button type="button" data-correct="true" data-feedback="Le nettoyage vise les branches temporaires sans commit unique ; main et dev sont explicitement exclues.">Conserver dev et main ; ne nettoyer que les branches temporaires éligibles.</button>
+<button type="button" data-correct="false" data-feedback="Le nettoyage des branches n'autorise jamais un push direct vers main.">Pousser directement sur main pour terminer le nettoyage.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+<div class="quiz"><fieldset><legend>5. Un contrôle échoue à cause d'un prérequis indépendant. Quelle décision respecte le périmètre ?</legend>
+<button type="button" data-correct="false" data-feedback="L'échec doit être expliqué. Désactiver le contrôle masque le problème.">Désactiver le contrôle pour ouvrir la PR.</button>
+<button type="button" data-correct="false" data-feedback="Le titre ne peut pas servir à regrouper artificiellement plusieurs objectifs.">Élargir le titre de la PR et tout corriger.</button>
+<button type="button" data-correct="true" data-feedback="L'arbitrage permet de traiter le prérequis séparément avant de reprendre le sujet initial.">Signaler le blocage, demander un arbitrage et prévoir une PR distincte pour le prérequis.</button>
+</fieldset><p class="feedback" role="status" aria-live="polite"></p></div>
+</section>
+</main><footer><a href="#top">Revenir au début</a> · <a href="https://github.com/yass1220/Qalam-motion-/pull/25">PR #25</a></footer>
+<script>
+document.querySelectorAll('.quiz').forEach(function(quiz){
+ var buttons=quiz.querySelectorAll('button');
+ buttons.forEach(function(button){
+  button.setAttribute('aria-pressed','false');
+  button.addEventListener('click',function(){
+   buttons.forEach(function(other){other.setAttribute('aria-pressed',String(other===button));});
+   quiz.querySelector('.feedback').textContent=(button.dataset.correct==='true'?'Bonne réponse. ':'À revoir. ')+button.dataset.feedback;
+  });
+ });
+});
+</script>
+</body></html>
