@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
+import next from 'next';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import crypto from 'node:crypto';
@@ -46,7 +47,20 @@ app.use('/admin.html', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
-app.use(express.static('public'));
+// Preserve the original enquiry/checkout page and in-flight PayPal returns.
+app.get('/order.html', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.resolve('public/index.html'));
+});
+app.get(['/', '/index.html'], (req, res, nextRoute) => {
+  if (req.query.payment || req.query.token) {
+    res.set('Cache-Control', 'no-store');
+    return res.sendFile(path.resolve('public/index.html'));
+  }
+  if (req.path === '/index.html') return res.redirect(302, '/' + (req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : ''));
+  nextRoute();
+});
+app.use(express.static('public', { index: false }));
 
 const mode = process.env.PAYPAL_MODE === 'live' ? 'live' : 'sandbox';
 const paypalBase = mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
@@ -1080,6 +1094,16 @@ app.get('/health', async (req, res) => {
     res.status(503).json({ ok: false, storage: store.type });
   }
 });
+
+// Production marketing pages share the same origin with the preserved business routes.
+// Fixture-based backend tests intentionally run without starting the Next runtime.
+if (process.env.NODE_ENV === 'production') {
+  const marketing = next({ dev: false });
+  await marketing.prepare();
+  app.all('*', (req, res, nextRoute) => {
+    marketing.getRequestHandler()(req, res).catch(nextRoute);
+  });
+}
 
 app.listen(Number(process.env.PORT) || 3000, () => {
   console.log(`Qalam Motion running on port ${process.env.PORT || 3000} (${mode}, ${store.type})`);

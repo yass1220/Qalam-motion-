@@ -1,13 +1,14 @@
 # Qalam Motion
 
-Arabic landing page and checkout flow for Qalam Motion, a hand-drawn video service.
+Four-language illustrated studio website for Qalam Motion, with the existing Express order, payment, email and administration services.
 
 ## What It Includes
 
 - Express server with PayPal Checkout order creation and capture.
 - PostgreSQL order storage when `DATABASE_URL` is set.
 - Local JSON order storage fallback for development.
-- Public Arabic landing page in `public/index.html`.
+- Localized studio pages at `/en`, `/ar`, `/fr`, `/es`.
+- Original enquiry/checkout page at `/order.html`; in-flight payment returns remain supported.
 - Admin orders page at `/admin.html`, protected by `ADMIN_TOKEN`.
 - Customer order tracking page at `/status.html`.
 - Optional email notifications through Resend.
@@ -17,12 +18,14 @@ Arabic landing page and checkout flow for Qalam Motion, a hand-drawn video servi
 ## Local Setup
 
 ```bash
-npm install
+pnpm install --frozen-lockfile
 cp .env.example .env
-npm run dev
+pnpm dev
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:3000`. For the combined production server, run `pnpm build` then `pnpm start`. `pnpm dev:backend` starts only the existing backend for local business-flow work.
+
+Validation: `pnpm check`, `pnpm typecheck`, `pnpm test`, `pnpm build`. The release checks run against isolated local data.
 
 ## Required Environment Variables
 
