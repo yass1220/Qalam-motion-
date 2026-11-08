@@ -1,7 +1,5 @@
 import { getTranslations } from "next-intl/server";
 import { CraftStudy, Flourish, StudioReel } from "@/components/studio-art";
-const email =
-  "mailto:yassah1220@gmail.com?subject=Qalam%20Motion%20%E2%80%94%20My%20story";
 export default async function HomePage() {
   const t = await getTranslations("Home");
   return (
@@ -140,7 +138,7 @@ export default async function HomePage() {
                 </div>
                 <a
                   className="offer-link"
-                  href={`${email}%20%2F%20${offer.name}`}
+                  href={`/order.html?package=${offer.name}#order`}
                 >
                   {t("choose")}
                   <span aria-hidden="true">↗</span>
@@ -186,7 +184,7 @@ export default async function HomePage() {
           </div>
           <div className="contact-action">
             <Flourish />
-            <a className="button button-cream" href={email}>
+            <a className="button button-cream" href="/order.html#order">
               {t("contactButton")}
               <span aria-hidden="true">↗</span>
             </a>
@@ -207,6 +205,11 @@ export default async function HomePage() {
           <a className="tracking-link" href="/status.html">
             {t("trackOrder")}
           </a>
+          <nav aria-label={t("policies")}>
+            <a href="/terms.html">{t("terms")}</a>{" · "}
+            <a href="/privacy.html">{t("privacy")}</a>{" · "}
+            <a href="/refunds.html">{t("refunds")}</a>
+          </nav>
           <span>© 2026 Qalam Motion</span>
         </div>
       </footer>
