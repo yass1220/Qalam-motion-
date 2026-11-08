@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { PenMark } from "@/components/studio-art";
+import { ArrowIcon } from "@/components/arrow-icon";
 import "../globals.css";
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -65,7 +66,7 @@ export default async function LocaleLayout({
               href={`/${locale}#contact`}
             >
               {t("navContact")}
-              <span aria-hidden="true">↗</span>
+              <ArrowIcon />
             </a>
           </div>
         </header>

@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { CraftStudy, Flourish, StudioReel } from "@/components/studio-art";
+import { ArrowIcon } from "@/components/arrow-icon";
 export default async function HomePage() {
   const t = await getTranslations("Home");
   return (
@@ -32,11 +33,11 @@ export default async function HomePage() {
           <div className="hero-actions">
             <a className="button" href="#contact">
               {t("primary")}
-              <span aria-hidden="true">↗</span>
+              <ArrowIcon />
             </a>
             <a className="underlink" href="#craft">
               {t("secondary")}
-              <span aria-hidden="true">↘</span>
+              <ArrowIcon down />
             </a>
           </div>
           <p className="hero-note">
@@ -141,7 +142,7 @@ export default async function HomePage() {
                   href={`/order.html?package=${offer.name}#order`}
                 >
                   {t("choose")}
-                  <span aria-hidden="true">↗</span>
+                  <ArrowIcon />
                 </a>
               </article>
             ))}
@@ -186,7 +187,7 @@ export default async function HomePage() {
             <Flourish />
             <a className="button button-cream" href="/order.html#order">
               {t("contactButton")}
-              <span aria-hidden="true">↗</span>
+              <ArrowIcon />
             </a>
             <p>{t("emailNote")}</p>
           </div>
@@ -200,7 +201,7 @@ export default async function HomePage() {
           <p>{t("footer")}</p>
         </div>
         <div className="footer-end">
-          <a href="mailto:yassah1220@gmail.com">yassah1220@gmail.com ↗</a>
+          <a href="mailto:yassah1220@gmail.com">yassah1220@gmail.com <ArrowIcon /></a>
           {process.env.NODE_ENV !== "production" && <p>{t("footerNote")}</p>}
           <a className="tracking-link" href="/status.html">
             {t("trackOrder")}
