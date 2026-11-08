@@ -1,8 +1,49 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { CraftStudy, Flourish, StudioReel } from "@/components/studio-art";
 import { ArrowIcon } from "@/components/arrow-icon";
+
+const creatorTools = {
+  ar: {
+    label: "أدوات لصنّاع المحتوى",
+    title: "من النص إلى الصوت",
+    intro: "مورد مستقل لمن يصنع محتواه بنفسه.",
+    description: "حوّل النص إلى مسودة تعليق صوتي، ثم راجع النطق والإيقاع قبل إضافته إلى الفيديو.",
+    disclosure: "رابط بالعمولة: قد نحصل على عمولة عند الاشتراك من خلاله.",
+    action: "جرّب أداة الصوت",
+    independence: "قلم موشن مستقل. هذا المحتوى غير معتمد أو ممول من ElevenLabs. الأسعار والاشتراك لدى مزوّد الأداة.",
+  },
+  en: {
+    label: "Creator tools",
+    title: "From text to voice",
+    intro: "An independent resource for people making their own content.",
+    description: "Turn text into a voiceover draft, then review pronunciation and pacing before adding it to your video.",
+    disclosure: "Affiliate link: we may earn a commission when you subscribe through it.",
+    action: "Try the voice tool",
+    independence: "Qalam Motion is independent. This content is not endorsed or sponsored by ElevenLabs. Pricing and subscriptions are handled by the tool provider.",
+  },
+  fr: {
+    label: "Outils pour les créateurs",
+    title: "Du texte à la voix",
+    intro: "Une ressource indépendante pour créer votre propre contenu.",
+    description: "Transformez un texte en première version de voix off, puis vérifiez la prononciation et le rythme avant de l’ajouter à votre vidéo.",
+    disclosure: "Lien d’affiliation : nous pouvons percevoir une commission si vous vous abonnez via ce lien.",
+    action: "Essayer l’outil vocal",
+    independence: "Qalam Motion est indépendant. Ce contenu n’est ni approuvé ni sponsorisé par ElevenLabs. Les tarifs et abonnements sont gérés par le fournisseur de l’outil.",
+  },
+  es: {
+    label: "Herramientas para creadores",
+    title: "Del texto a la voz",
+    intro: "Un recurso independiente para quienes crean su propio contenido.",
+    description: "Convierte el texto en un borrador de voz en off y revisa la pronunciación y el ritmo antes de añadirlo a tu vídeo.",
+    disclosure: "Enlace de afiliado: podemos recibir una comisión si te suscribes a través de él.",
+    action: "Probar la herramienta de voz",
+    independence: "Qalam Motion es independiente. Este contenido no está avalado ni patrocinado por ElevenLabs. El proveedor de la herramienta gestiona los precios y las suscripciones.",
+  },
+};
+
 export default async function HomePage() {
-  const t = await getTranslations("Home");
+  const [t, locale] = await Promise.all([getTranslations("Home"), getLocale()]);
+  const tools = creatorTools[locale as keyof typeof creatorTools] ?? creatorTools.en;
   return (
     <main id="main">
       <section className="hero wrap">
@@ -193,6 +234,31 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      <section className="wrap section" id="tools" aria-labelledby="creator-tools-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">{tools.label}</p>
+            <h2 id="creator-tools-title">{tools.title}</h2>
+          </div>
+          <p>{tools.intro}</p>
+        </div>
+        <article className="offer">
+          <h3><bdi>ElevenLabs</bdi></h3>
+          <p>{tools.description}</p>
+          <p style={{ color: "var(--ink)", marginBlock: "20px 12px", lineHeight: 1.8 }}>
+            {tools.disclosure}
+          </p>
+          <a
+            className="button"
+            href="https://try.elevenlabs.io/ba3xgbf15lrb"
+            target="_blank"
+            rel="sponsored noopener noreferrer"
+          >
+            {tools.action}<ArrowIcon />
+          </a>
+          <p style={{ marginTop: 18, lineHeight: 1.8 }}>{tools.independence}</p>
+        </article>
+      </section>
       <footer className="wrap footer">
         <div>
           <a className="footer-brand" href="#main">
@@ -206,6 +272,7 @@ export default async function HomePage() {
           <a className="tracking-link" href="/status.html">
             {t("trackOrder")}
           </a>
+          <a className="tracking-link" href="#tools">{tools.label}</a>
           <nav aria-label={t("policies")}>
             <a href="/terms.html">{t("terms")}</a>{" · "}
             <a href="/privacy.html">{t("privacy")}</a>{" · "}
