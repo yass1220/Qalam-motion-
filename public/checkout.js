@@ -136,6 +136,10 @@ $('checkout').onsubmit=async e=>{
   }
 };
 const q=new URLSearchParams(location.search);
+// A marketing package link only selects an existing plan. It never submits a
+// form, enables payment, or overrides the server-authoritative catalogue.
+const requestedPackage=q.get('package');
+if(Object.hasOwn(planNames,requestedPackage||''))$('package').value=requestedPackage;
 const pending=pendingOrder();
 if(q.get('payment')==='cancel'){
   clearPendingOrder();

@@ -28,6 +28,19 @@ test("production keeps business routes and pending payment returns alongside the
   assert.ok(html.includes('href="/status.html"'));
   assert.ok(!html.includes("noindex"));
   assert.ok(!html.includes("معاينة تصميم محلية"));
+  for (const locale of ["ar", "en", "fr", "es"]) {
+    const page = await fetch(`${base}/${locale}`);
+    const content = await page.text();
+    for (const plan of ["short", "signature"]) {
+      assert.ok(content.includes(`href="/order.html?package=${plan}#order"`), `${locale}:${plan}`);
+    }
+    for (const route of ["/order.html#order", "/terms.html", "/privacy.html", "/refunds.html"]) {
+      assert.ok(content.includes(`href="${route}"`), `${locale}:${route}`);
+    }
+    const orderPage = await fetch(`${base}/order.html?package=signature`);
+    assert.equal(orderPage.status, 200);
+    assert.ok((await orderPage.text()).includes('src="/checkout.js"'));
+  }
   const font = await fetch(`${base}/fonts/harmattan/Harmattan-Regular.ttf`);
   assert.equal(font.status, 200);
   assert.ok((await font.arrayBuffer()).byteLength > 1000);
