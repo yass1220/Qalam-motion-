@@ -8,36 +8,40 @@ const creatorTools = {
     title: "من النص إلى الصوت",
     intro: "مورد مستقل لمن يصنع محتواه بنفسه.",
     description: "حوّل النص إلى مسودة تعليق صوتي، ثم راجع النطق والإيقاع قبل إضافته إلى الفيديو.",
-    disclosure: "رابط بالعمولة: قد نحصل على عمولة عند الاشتراك من خلاله.",
+    disclosure: "نشارك بصفة مسوّق مستقل بالعمولة؛ قد نحصل على عمولة عند الاشتراك من خلال هذا الرابط.",
     action: "جرّب أداة الصوت",
     independence: "قلم موشن مستقل. هذا المحتوى غير معتمد أو ممول من ElevenLabs. الأسعار والاشتراك لدى مزوّد الأداة.",
+    attribution: "ElevenLabs وشعارها علامتان تجاريتان مملوكتان لشركة ElevenLabs, Inc. وتُستخدمان بإذن. يشارك قلم موشن بصورة مستقلة في برنامج ElevenLabs Creator Affiliate Program؛ ولا ترعى ElevenLabs قلم موشن أو تعتمد أعماله.",
   },
   en: {
     label: "Creator tools",
     title: "From text to voice",
     intro: "An independent resource for people making their own content.",
     description: "Turn text into a voiceover draft, then review pronunciation and pacing before adding it to your video.",
-    disclosure: "Affiliate link: we may earn a commission when you subscribe through it.",
+    disclosure: "We participate as an independent affiliate and may earn a commission when you subscribe through this link.",
     action: "Try the voice tool",
     independence: "Qalam Motion is independent. This content is not endorsed or sponsored by ElevenLabs. Pricing and subscriptions are handled by the tool provider.",
+    attribution: "ElevenLabs and its logo are trademarks owned by ElevenLabs, Inc., used with permission. Qalam Motion is an independent participant in the ElevenLabs Creator Affiliate Program; ElevenLabs does not sponsor or endorse Qalam Motion.",
   },
   fr: {
     label: "Outils pour les créateurs",
     title: "Du texte à la voix",
     intro: "Une ressource indépendante pour créer votre propre contenu.",
     description: "Transformez un texte en première version de voix off, puis vérifiez la prononciation et le rythme avant de l’ajouter à votre vidéo.",
-    disclosure: "Lien d’affiliation : nous pouvons percevoir une commission si vous vous abonnez via ce lien.",
+    disclosure: "Nous participons en tant qu’affilié indépendant et pouvons percevoir une commission si vous vous abonnez via ce lien.",
     action: "Essayer l’outil vocal",
     independence: "Qalam Motion est indépendant. Ce contenu n’est ni approuvé ni sponsorisé par ElevenLabs. Les tarifs et abonnements sont gérés par le fournisseur de l’outil.",
+    attribution: "ElevenLabs et son logo sont des marques appartenant à ElevenLabs, Inc., utilisées avec autorisation. Qalam Motion participe de manière indépendante au programme ElevenLabs Creator Affiliate Program ; ElevenLabs ne sponsorise ni n’approuve Qalam Motion.",
   },
   es: {
     label: "Herramientas para creadores",
     title: "Del texto a la voz",
     intro: "Un recurso independiente para quienes crean su propio contenido.",
     description: "Convierte el texto en un borrador de voz en off y revisa la pronunciación y el ritmo antes de añadirlo a tu vídeo.",
-    disclosure: "Enlace de afiliado: podemos recibir una comisión si te suscribes a través de él.",
+    disclosure: "Participamos como afiliado independiente y podemos recibir una comisión si te suscribes a través de este enlace.",
     action: "Probar la herramienta de voz",
     independence: "Qalam Motion es independiente. Este contenido no está avalado ni patrocinado por ElevenLabs. El proveedor de la herramienta gestiona los precios y las suscripciones.",
+    attribution: "ElevenLabs y su logotipo son marcas propiedad de ElevenLabs, Inc., utilizadas con permiso. Qalam Motion participa de forma independiente en el programa ElevenLabs Creator Affiliate Program; ElevenLabs no patrocina ni respalda a Qalam Motion.",
   },
 };
 
@@ -257,6 +261,7 @@ export default async function HomePage() {
             {tools.action}<ArrowIcon />
           </a>
           <p style={{ marginTop: 18, lineHeight: 1.8 }}>{tools.independence}</p>
+          <p style={{ marginTop: 12, lineHeight: 1.8 }}>{tools.attribution}</p>
         </article>
       </section>
       <footer className="wrap footer">
